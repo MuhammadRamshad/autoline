@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="glow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#2563eb" />
+    </linearGradient>
+    <linearGradient id="bodyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#18181b" />
+      <stop offset="100%" stop-color="#09090b" />
+    </linearGradient>
+  </defs>
+
+  <!-- Rounded Squircle Dark Canvas -->
+  <rect width="64" height="64" rx="16" fill="url(#bodyGrad)" stroke="#27272a" stroke-width="2"/>
+
+  <!-- Sleek Speed/Streamline Accent -->
+  <path d="M12 20 L24 20" stroke="url(#glow)" stroke-width="3" stroke-linecap="round" opacity="0.8" />
+  
+  <!-- Stylized Monogram 'A' (Precision Automotive Craft) -->
+  <path d="M32 14 L46 48 L39 48 L35.2 38 L28.8 38 L25 48 L18 48 Z M32 23.5 L29.8 33 L34.2 33 Z" 
+        fill="#ffffff" />
+
+  <!-- Clean Water Jet / Detailing Sparkle Droplet -->
+  <circle cx="48" cy="18" r="3.5" fill="url(#glow)" />
+  <path d="M48 12 C48 12 52 17 52 19 C52 21.2 50.2 23 48 23 C45.8 23 44 21.2 44 19 C44 17 48 12 48 12 Z" 
+        fill="url(#glow)" opacity="0.9" />
+</svg>
