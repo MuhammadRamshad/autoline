@@ -14,7 +14,11 @@ import {
   Filter,
   X,
   FileSpreadsheet,
-  FileText
+  FileText,
+  Receipt,
+  TrendingDown,
+  TrendingUp,
+  DollarSign
 } from "lucide-react";
 import { exportToExcel, exportToPDF } from "@/lib/exportUtils";
 
@@ -25,6 +29,11 @@ export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  // Expenses State for Admin
+  const [expenses, setExpenses] = useState<any[]>([]);
+  const [expenseStats, setExpenseStats] = useState({ totalExpense: 0, cashExpense: 0, upiExpense: 0, count: 0 });
+  const [activeTab, setActiveTab] = useState<"washes" | "expenses">("washes");
 
   // Advanced Filters
   const [fromDate, setFromDate] = useState<string>("");
@@ -66,6 +75,18 @@ export default function AdminDashboardPage() {
       if (entriesData.success) {
         setEntries(entriesData.entries);
         setStats(entriesData.stats);
+      }
+
+      // Fetch Expenses matching date/search
+      const expParams = new URLSearchParams();
+      if (fromDate) expParams.append("fromDate", fromDate);
+      if (toDate) expParams.append("toDate", toDate);
+      if (searchQuery) expParams.append("search", searchQuery.trim());
+      const expRes = await fetch(`/api/expenses?${expParams.toString()}`);
+      const expData = await expRes.json();
+      if (expData.success) {
+        setExpenses(expData.expenses);
+        setExpenseStats(expData.stats);
       }
     } catch (err) {
       console.error(err);
@@ -293,38 +314,45 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <div className="p-4 border border-neutral-900 bg-neutral-950">
-            <div className="text-[10px] font-mono uppercase tracking-wider text-neutral-500">Revenue (Total)</div>
-            <div className="text-2xl font-mono font-bold mt-1">₹{stats.totalAmount.toLocaleString("en-IN")}</div>
+        {/* Stats Grid Including Revenue, Expenses, and Net Profit */}
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-3">
+          <div className="p-3.5 border border-neutral-900 bg-neutral-950">
+            <div className="text-[10px] font-mono uppercase tracking-wider text-neutral-500">Gross Inflow</div>
+            <div className="text-xl font-mono font-bold mt-1 text-white">₹{stats.totalAmount.toLocaleString("en-IN")}</div>
           </div>
 
-          <div className="p-4 border border-neutral-900 bg-neutral-950">
-            <div className="text-[10px] font-mono uppercase tracking-wider text-neutral-500">Vehicles</div>
-            <div className="text-2xl font-mono font-bold mt-1">{stats.count}</div>
+          <div className="p-3.5 border border-neutral-900 bg-neutral-950">
+            <div className="text-[10px] font-mono uppercase tracking-wider text-neutral-500">Total Expenses</div>
+            <div className="text-xl font-mono font-bold mt-1 text-rose-400">₹{expenseStats.totalExpense.toLocaleString("en-IN")}</div>
           </div>
 
-          <div className="p-4 border border-neutral-900 bg-neutral-950">
-            <div className="text-[10px] font-mono uppercase tracking-wider text-neutral-500">UPI / QR</div>
-            <div className="text-2xl font-mono font-bold mt-1">₹{stats.upiAmount.toLocaleString("en-IN")}</div>
+          <div className="p-3.5 border border-neutral-900 bg-neutral-950">
+            <div className="text-[10px] font-mono uppercase tracking-wider text-emerald-400 font-bold">Net Profit</div>
+            <div className="text-xl font-mono font-bold mt-1 text-emerald-400">
+              ₹{(stats.totalAmount - (stats.pendingAmount || 0) - expenseStats.totalExpense).toLocaleString("en-IN")}
+            </div>
           </div>
 
-          <div className="p-4 border border-neutral-900 bg-neutral-950">
-            <div className="text-[10px] font-mono uppercase tracking-wider text-neutral-500">Cash</div>
-            <div className="text-2xl font-mono font-bold mt-1">₹{stats.cashAmount.toLocaleString("en-IN")}</div>
+          <div className="p-3.5 border border-neutral-900 bg-neutral-950">
+            <div className="text-[10px] font-mono uppercase tracking-wider text-neutral-500">Vehicles Serviced</div>
+            <div className="text-xl font-mono font-bold mt-1 text-white">{stats.count}</div>
           </div>
 
-          <div className={`p-4 border ${stats.pendingAmount > 0 ? "border-amber-500/50 bg-amber-950/20" : "border-neutral-900 bg-neutral-950"}`}>
+          <div className="p-3.5 border border-neutral-900 bg-neutral-950">
+            <div className="text-[10px] font-mono uppercase tracking-wider text-neutral-500">Cash Inflow</div>
+            <div className="text-xl font-mono font-bold mt-1 text-white">₹{stats.cashAmount.toLocaleString("en-IN")}</div>
+          </div>
+
+          <div className={`p-3.5 border ${stats.pendingAmount > 0 ? "border-amber-500/50 bg-amber-950/20" : "border-neutral-900 bg-neutral-950"}`}>
             <div className="text-[10px] font-mono uppercase tracking-wider text-amber-400 font-bold flex items-center justify-between">
               <span>Pending Dues</span>
               {stats.pendingCount > 0 && (
-                <span className="bg-amber-500 text-black px-1.5 py-0.2 rounded text-[9px] font-mono font-bold">
+                <span className="bg-amber-500 text-black px-1 py-0.2 rounded text-[9px] font-mono font-bold">
                   {stats.pendingCount}
                 </span>
               )}
             </div>
-            <div className="text-2xl font-mono font-bold mt-1 text-amber-400">
+            <div className="text-xl font-mono font-bold mt-1 text-amber-400">
               ₹{(stats.pendingAmount || 0).toLocaleString("en-IN")}
             </div>
           </div>
@@ -484,7 +512,37 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Wash Records with Advanced Multi-Filter */}
+        {/* Section Tabs: Wash Records vs Shop Expenses */}
+        <div className="flex border-b border-neutral-900 gap-6 text-xs font-mono uppercase tracking-wider">
+          <button
+            type="button"
+            onClick={() => setActiveTab("washes")}
+            className={`pb-3 border-b-2 font-bold cursor-pointer transition-colors flex items-center gap-2 ${
+              activeTab === "washes"
+                ? "border-white text-white"
+                : "border-transparent text-neutral-500 hover:text-neutral-300"
+            }`}
+          >
+            <Car className="h-4 w-4" />
+            <span>Wash Records ({entries.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("expenses")}
+            className={`pb-3 border-b-2 font-bold cursor-pointer transition-colors flex items-center gap-2 ${
+              activeTab === "expenses"
+                ? "border-amber-400 text-amber-300"
+                : "border-transparent text-neutral-500 hover:text-neutral-300"
+            }`}
+          >
+            <Receipt className="h-4 w-4" />
+            <span>Shop Expenses ({expenses.length})</span>
+          </button>
+        </div>
+
+        {/* Tab 1: Wash Records with Advanced Multi-Filter */}
+        {activeTab === "washes" && (
         <div className="border border-neutral-900 p-5 space-y-5">
           
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-neutral-900 pb-4">
@@ -532,32 +590,34 @@ export default function AdminDashboardPage() {
             </div>
           </div>
 
-          {/* Filtering Controls Grid */}
+          {/* Filtering Controls Grid with Native Styled Calendar Inputs */}
           <form onSubmit={handleSearchSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
             
-            {/* From Date */}
+            {/* From Date with Calendar Icon */}
             <div>
-              <label className="block text-[10px] uppercase font-mono tracking-wider text-neutral-400 mb-1">
-                From Date
+              <label className="block text-[10px] uppercase font-mono tracking-wider text-neutral-400 mb-1 flex items-center gap-1">
+                <Calendar className="h-3 w-3 text-sky-400" />
+                <span>From Date</span>
               </label>
               <input
                 type="date"
                 value={fromDate}
                 onChange={(e) => setFromDate(e.target.value)}
-                className="w-full bg-black border border-neutral-800 text-xs font-mono text-neutral-200 px-2.5 py-2 focus:outline-none focus:border-white"
+                className="w-full bg-black border border-neutral-800 text-xs font-mono text-neutral-200 px-2.5 py-2 focus:outline-none focus:border-white [color-scheme:dark]"
               />
             </div>
 
-            {/* To Date */}
+            {/* To Date with Calendar Icon */}
             <div>
-              <label className="block text-[10px] uppercase font-mono tracking-wider text-neutral-400 mb-1">
-                To Date
+              <label className="block text-[10px] uppercase font-mono tracking-wider text-neutral-400 mb-1 flex items-center gap-1">
+                <Calendar className="h-3 w-3 text-sky-400" />
+                <span>To Date</span>
               </label>
               <input
                 type="date"
                 value={toDate}
                 onChange={(e) => setToDate(e.target.value)}
-                className="w-full bg-black border border-neutral-800 text-xs font-mono text-neutral-200 px-2.5 py-2 focus:outline-none focus:border-white"
+                className="w-full bg-black border border-neutral-800 text-xs font-mono text-neutral-200 px-2.5 py-2 focus:outline-none focus:border-white [color-scheme:dark]"
               />
             </div>
 
@@ -778,6 +838,81 @@ export default function AdminDashboardPage() {
             </table>
           </div>
         </div>
+        )}
+
+        {/* Tab 2: Shop Expenses Management & Records */}
+        {activeTab === "expenses" && (
+          <div className="border border-neutral-900 p-5 space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-neutral-900 pb-4">
+              <div>
+                <h2 className="text-sm font-mono uppercase tracking-wider text-amber-400 flex items-center gap-2">
+                  <Receipt className="h-4 w-4" />
+                  <span>Shop Expenses & Outflow Records</span>
+                </h2>
+                <p className="text-[11px] font-mono text-neutral-500 mt-0.5">
+                  Showing {expenses.length} expense entries • Total: ₹{expenseStats.totalExpense.toLocaleString("en-IN")} (Cash: ₹{expenseStats.cashExpense.toLocaleString("en-IN")} • UPI: ₹{expenseStats.upiExpense.toLocaleString("en-IN")})
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-mono text-neutral-400">Total Outflow:</span>
+                <span className="text-lg font-mono font-bold text-rose-400">₹{expenseStats.totalExpense.toLocaleString("en-IN")}</span>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs font-mono">
+                <thead className="border-b border-neutral-900 text-neutral-500 uppercase">
+                  <tr>
+                    <th className="py-2.5 px-3">Date</th>
+                    <th className="py-2.5 px-3">Expense Title</th>
+                    <th className="py-2.5 px-3">Category</th>
+                    <th className="py-2.5 px-3">Paid By</th>
+                    <th className="py-2.5 px-3">Amount</th>
+                    <th className="py-2.5 px-3">Mode</th>
+                    <th className="py-2.5 px-3 text-right">Delete</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-neutral-900">
+                  {expenses.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-12 text-center text-neutral-600">
+                        No expenses recorded for this period
+                      </td>
+                    </tr>
+                  ) : (
+                    expenses.map((exp) => (
+                      <tr key={exp._id} className="hover:bg-neutral-950">
+                        <td className="py-3 px-3 text-neutral-400">
+                          {new Date(exp.createdAt).toLocaleDateString("en-IN")} {new Date(exp.createdAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                        </td>
+                        <td className="py-3 px-3 text-white font-bold">{exp.title}</td>
+                        <td className="py-3 px-3 text-neutral-400">{exp.category}</td>
+                        <td className="py-3 px-3 text-neutral-400">{exp.paidBy || "-"}</td>
+                        <td className="py-3 px-3 text-rose-400 font-bold">₹{exp.amount}</td>
+                        <td className="py-3 px-3 text-neutral-400">{exp.paymentMode}</td>
+                        <td className="py-3 px-3 text-right">
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              if (!confirm(`Delete expense "${exp.title}"?`)) return;
+                              const res = await fetch(`/api/expenses?id=${exp._id}`, { method: "DELETE" });
+                              if (res.ok) fetchData();
+                            }}
+                            className="text-neutral-600 hover:text-rose-400 cursor-pointer p-1"
+                            title="Delete expense"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
       </main>
     </div>

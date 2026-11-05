@@ -13,7 +13,9 @@ import {
   CheckSquare, 
   Banknote, 
   QrCode,
-  Save
+  Save,
+  Receipt,
+  Plus
 } from "lucide-react";
 import { INDIAN_VEHICLES_DATABASE, IndianVehicleModel } from "@/lib/vehicleDatabase";
 
@@ -57,9 +59,74 @@ export default function ShopkeeperCounterPage() {
   const [editingEntry, setEditingEntry] = useState<any | null>(null);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
 
+  // Expense Quick-Form State
+  const [expenseTitle, setExpenseTitle] = useState("");
+  const [expenseCategory, setExpenseCategory] = useState("Miscellaneous");
+  const [expenseAmount, setExpenseAmount] = useState<string>("");
+  const [expensePaymentMode, setExpensePaymentMode] = useState<"Cash" | "UPI / QR">("Cash");
+  const [expensePaidBy, setExpensePaidBy] = useState("");
+  const [isSubmittingExpense, setIsSubmittingExpense] = useState(false);
+  const [recentExpenses, setRecentExpenses] = useState<any[]>([]);
+
+  const fetchRecentExpenses = async () => {
+    try {
+      const res = await fetch("/api/expenses?limit=4");
+      const data = await res.json();
+      if (data.success && data.expenses) {
+        setRecentExpenses(data.expenses);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleExpenseSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!expenseTitle.trim()) {
+      showToast("Please enter an expense title", "error");
+      return;
+    }
+    const num = Number(expenseAmount);
+    if (!expenseAmount || isNaN(num) || num <= 0) {
+      showToast("Please enter a valid expense amount", "error");
+      return;
+    }
+
+    setIsSubmittingExpense(true);
+    try {
+      const res = await fetch("/api/expenses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: expenseTitle.trim(),
+          category: expenseCategory,
+          amount: num,
+          paymentMode: expensePaymentMode,
+          paidBy: expensePaidBy.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast(`Expense recorded: ₹${data.expense.amount} (${data.expense.title})`, "success");
+        setExpenseTitle("");
+        setExpenseAmount("");
+        setExpensePaidBy("");
+        fetchRecentExpenses();
+      } else {
+        showToast(data.error || "Failed to save expense", "error");
+      }
+    } catch (err: any) {
+      showToast(err.message || "Network error", "error");
+    } finally {
+      setIsSubmittingExpense(false);
+    }
+  };
+
   useEffect(() => {
     fetchTariffs();
     fetchRecentEntries();
+    fetchRecentExpenses();
   }, []);
 
   const fetchTariffs = async () => {
@@ -521,8 +588,118 @@ export default function ShopkeeperCounterPage() {
             </form>
           </div>
 
-          {/* Right column: Recent Entries & Thermal Voucher */}
+          {/* Right column: Recent Entries & Quick Expense Recording */}
           <div className="md:col-span-5 space-y-6">
+
+            {/* Quick Expense Form Beside Vehicle Entry */}
+            <div className="border border-neutral-800 p-4 bg-neutral-950 space-y-3">
+              <div className="flex items-center justify-between border-b border-neutral-900 pb-2">
+                <div className="flex items-center gap-1.5">
+                  <Receipt className="h-3.5 w-3.5 text-amber-400" />
+                  <span className="text-xs font-mono uppercase font-bold text-neutral-200">Record Expense</span>
+                </div>
+                <span className="text-[10px] font-mono text-neutral-500 uppercase">Shop Outflow</span>
+              </div>
+
+              <form onSubmit={handleExpenseSubmit} className="space-y-2.5">
+                <div>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Expense title (e.g. Shampoo, Tea, Sponge, Water)"
+                    value={expenseTitle}
+                    onChange={(e) => setExpenseTitle(e.target.value)}
+                    className="w-full bg-black border border-neutral-800 px-2.5 py-1.5 text-xs text-white placeholder:text-neutral-700 font-mono focus:outline-none focus:border-white"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <select
+                      value={expenseCategory}
+                      onChange={(e) => setExpenseCategory(e.target.value)}
+                      className="w-full bg-black border border-neutral-800 px-2 py-1.5 text-[11px] text-white font-mono focus:outline-none focus:border-white"
+                    >
+                      <option value="Chemicals & Soap">Chemicals & Soap</option>
+                      <option value="Refreshments / Tea">Refreshments / Tea</option>
+                      <option value="Electricity & Water">Electricity & Water</option>
+                      <option value="Staff & Daily Wages">Staff & Daily Wages</option>
+                      <option value="Maintenance & Tools">Maintenance & Tools</option>
+                      <option value="Fuel / Diesel">Fuel / Diesel</option>
+                      <option value="Miscellaneous">Miscellaneous</option>
+                    </select>
+                  </div>
+
+                  <div className="relative">
+                    <span className="absolute left-2.5 top-1.5 text-xs font-mono text-neutral-500">₹</span>
+                    <input
+                      type="number"
+                      required
+                      placeholder="Amount"
+                      value={expenseAmount}
+                      onChange={(e) => setExpenseAmount(e.target.value)}
+                      className="w-full bg-black border border-neutral-800 pl-6 pr-2 py-1.5 text-xs font-mono font-bold text-white placeholder:text-neutral-700 focus:outline-none focus:border-white"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="flex border border-neutral-800">
+                    <button
+                      type="button"
+                      onClick={() => setExpensePaymentMode("Cash")}
+                      className={`flex-1 py-1 text-[10px] font-mono uppercase font-semibold ${
+                        expensePaymentMode === "Cash" ? "bg-white text-black" : "bg-black text-neutral-400"
+                      }`}
+                    >
+                      Cash
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setExpensePaymentMode("UPI / QR")}
+                      className={`flex-1 py-1 text-[10px] font-mono uppercase font-semibold ${
+                        expensePaymentMode === "UPI / QR" ? "bg-white text-black" : "bg-black text-neutral-400"
+                      }`}
+                    >
+                      UPI
+                    </button>
+                  </div>
+
+                  <input
+                    type="text"
+                    placeholder="Paid by (Optional)"
+                    value={expensePaidBy}
+                    onChange={(e) => setExpensePaidBy(e.target.value)}
+                    className="w-full bg-black border border-neutral-800 px-2.5 py-1 text-[11px] text-white placeholder:text-neutral-700 font-mono focus:outline-none focus:border-white"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSubmittingExpense}
+                  className="w-full py-2 bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 text-[11px] font-mono uppercase font-bold text-neutral-300 hover:text-white transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <Plus className="h-3 w-3" />
+                  <span>{isSubmittingExpense ? "Saving..." : "Add Expense"}</span>
+                </button>
+              </form>
+
+              {recentExpenses.length > 0 && (
+                <div className="pt-2 border-t border-neutral-900">
+                  <div className="text-[10px] font-mono uppercase tracking-wider text-neutral-500 mb-1.5">
+                    Today's Expenses
+                  </div>
+                  <div className="space-y-1">
+                    {recentExpenses.slice(0, 3).map((exp) => (
+                      <div key={exp._id} className="flex items-center justify-between text-[11px] font-mono text-neutral-400">
+                        <span className="truncate max-w-[170px] text-neutral-300">{exp.title}</span>
+                        <span className="text-white font-semibold">₹{exp.amount} <span className="text-[9px] text-neutral-500 font-normal">({exp.paymentMode})</span></span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
             
             {/* Last entry card */}
             {lastSubmittedEntry && (
