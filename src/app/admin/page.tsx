@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import { 
   Trash2,
@@ -18,7 +19,9 @@ import {
   Receipt,
   TrendingDown,
   TrendingUp,
-  DollarSign
+  DollarSign,
+  Tag,
+  ArrowUpRight
 } from "lucide-react";
 import { exportToExcel, exportToPDF } from "@/lib/exportUtils";
 
@@ -187,10 +190,17 @@ export default function AdminDashboardPage() {
       const pad = (n: number) => n.toString().padStart(2, "0");
       const todayStr = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
 
-      // Fetch all entries for today
-      const res = await fetch(`/api/washes?fromDate=${todayStr}&toDate=${todayStr}&limit=1000&_t=${Date.now()}`);
-      const data = await res.json();
-      const todayEntries = (data.success && data.entries) ? data.entries : [];
+      // Fetch washes and expenses for today concurrently
+      const [washRes, expRes] = await Promise.all([
+        fetch(`/api/washes?fromDate=${todayStr}&toDate=${todayStr}&limit=1000&_t=${Date.now()}`),
+        fetch(`/api/expenses?fromDate=${todayStr}&toDate=${todayStr}&limit=1000&_t=${Date.now()}`)
+      ]);
+
+      const washData = await washRes.json();
+      const expData = await expRes.json();
+
+      const todayEntries = (washData.success && washData.entries) ? washData.entries : [];
+      const todayExpenses = (expData.success && expData.expenses) ? expData.expenses : [];
 
       const humanDate = today.toLocaleDateString("en-IN", {
         weekday: "short",
@@ -199,12 +209,17 @@ export default function AdminDashboardPage() {
         year: "numeric"
       });
 
-      if (todayEntries.length === 0) {
-        alert(`No entries found for today (${humanDate})`);
+      if (todayEntries.length === 0 && todayExpenses.length === 0) {
+        alert(`No records found for today (${humanDate})`);
         return;
       }
 
-      exportToPDF(todayEntries, "Autoline Wash Report", `Daily Report: ${humanDate} • Total ${todayEntries.length} entries`);
+      exportToPDF(
+        todayEntries, 
+        "Autoline Wash & Financial Report", 
+        `Daily Statement: ${humanDate} • ${todayEntries.length} washes • ${todayExpenses.length} expenses`,
+        todayExpenses
+      );
     } catch (err: any) {
       console.error(err);
       alert("Failed to generate today's report");
@@ -215,12 +230,12 @@ export default function AdminDashboardPage() {
 
   const handleExportExcel = () => {
     const filename = `Autoline_Report_${fromDate || "Start"}_to_${toDate || "End"}.xlsx`;
-    exportToExcel(entries, filename);
+    exportToExcel(entries, filename, expenses);
   };
 
   const handleExportPDF = () => {
     const subtitle = getFilterSummaryString();
-    exportToPDF(entries, "Autoline Wash Report", subtitle);
+    exportToPDF(entries, "Autoline Wash Report", subtitle, expenses);
   };
 
   const startEditPrice = (item: any) => {
@@ -339,6 +354,16 @@ export default function AdminDashboardPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            <Link
+              href="/admin/pricing"
+              className="px-3.5 py-2 bg-neutral-900 hover:bg-neutral-800 text-xs font-mono text-neutral-200 border border-neutral-800 cursor-pointer flex items-center gap-1.5 transition"
+              title="Manage Vehicle Categories & Wash Pricing Rates"
+            >
+              <Tag className="h-3.5 w-3.5 text-neutral-400" />
+              <span>Category Pricing</span>
+              <ArrowUpRight className="h-3 w-3 text-neutral-500" />
+            </Link>
+
             <button
               onClick={() => fetchData()}
               disabled={refreshing}
@@ -403,160 +428,6 @@ export default function AdminDashboardPage() {
             <div className="text-xl font-mono font-bold mt-1 text-amber-400">
               ₹{(stats.pendingAmount || 0).toLocaleString("en-IN")}
             </div>
-          </div>
-        </div>
-
-        {/* Category Pricing (Single Price per Category & Delete Option) */}
-        <div className="border border-neutral-900 p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-sm font-mono uppercase tracking-wider text-neutral-300">Vehicle Categories & Rates</h2>
-              <p className="text-[11px] font-mono text-neutral-500 mt-0.5">Edit rates, view models included, or delete categories</p>
-            </div>
-            <button
-              onClick={() => setShowAddCategory(!showAddCategory)}
-              className="text-xs font-mono uppercase text-neutral-400 hover:text-white cursor-pointer"
-            >
-              + Add Category
-            </button>
-          </div>
-
-          {showAddCategory && (
-            <form onSubmit={handleAddNewCategory} className="p-3 bg-neutral-950 border border-neutral-800 flex flex-wrap gap-2">
-              <input
-                type="text"
-                placeholder="Category Name (e.g. Electric 3-Wheeler)"
-                value={newCatName}
-                onChange={(e) => setNewCatName(e.target.value)}
-                className="bg-black border border-neutral-800 px-3 py-1.5 text-xs text-white flex-1 min-w-[200px]"
-                required
-              />
-              <input
-                type="number"
-                placeholder="Fixed Rate (₹)"
-                value={newPrice}
-                onChange={(e) => setNewPrice(Number(e.target.value))}
-                className="bg-black border border-neutral-800 px-3 py-1.5 text-xs text-white w-32"
-                required
-              />
-              <button
-                type="submit"
-                className="bg-white text-black text-xs font-semibold uppercase px-4 py-1.5 hover:bg-neutral-200 cursor-pointer"
-              >
-                Save
-              </button>
-            </form>
-          )}
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs font-mono">
-              <thead className="border-b border-neutral-900 text-neutral-500 uppercase">
-                <tr>
-                  <th className="py-2.5 px-3">Vehicle Category</th>
-                  <th className="py-2.5 px-3">Included Vehicles (Indian DB)</th>
-                  <th className="py-2.5 px-3">Wash Rate</th>
-                  <th className="py-2.5 px-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-neutral-900">
-                {prices.map((item) => {
-                  const isEditing = editingCategory === item.category;
-                  const isExpanded = expandedCategory === item.category;
-                  const vehicleCount = item.vehicles?.length || 0;
-
-                  return (
-                    <tr key={item._id || item.category} className="group">
-                      <td className="py-3 px-3 text-white font-medium align-top">
-                        <div className="flex items-center gap-2">
-                          <Car className="h-3.5 w-3.5 text-neutral-500" />
-                          <span>{item.category}</span>
-                        </div>
-                      </td>
-
-                      {/* Models Included Column with toggle */}
-                      <td className="py-3 px-3 text-neutral-400 align-top max-w-md">
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => setExpandedCategory(isExpanded ? null : item.category)}
-                            className="inline-flex items-center gap-1 text-[11px] font-mono text-neutral-300 hover:text-white bg-neutral-900 border border-neutral-800 px-2 py-0.5 cursor-pointer"
-                          >
-                            <span>{vehicleCount} models in DB</span>
-                            {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                          </button>
-                        </div>
-
-                        {/* Expanded vehicle list chips */}
-                        {isExpanded && (
-                          <div className="mt-2.5 p-2 bg-neutral-950 border border-neutral-850 flex flex-wrap gap-1 max-h-40 overflow-y-auto">
-                            {item.vehicles?.map((vName: string, i: number) => (
-                              <span key={i} className="text-[10px] bg-neutral-900 text-neutral-300 px-2 py-0.5 border border-neutral-800">
-                                {vName}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </td>
-
-                      {/* Single Wash Rate */}
-                      <td className="py-3 px-3 align-top font-bold text-white text-sm">
-                        {isEditing ? (
-                          <div className="flex items-center gap-1">
-                            <span>₹</span>
-                            <input
-                              type="number"
-                              value={editPrice}
-                              onChange={(e) => setEditPrice(Number(e.target.value))}
-                              className="w-24 bg-black border border-neutral-700 px-2 py-1 text-white text-xs font-mono"
-                              autoFocus
-                            />
-                          </div>
-                        ) : (
-                          `₹${item.price}`
-                        )}
-                      </td>
-
-                      {/* Actions: Edit & Delete */}
-                      <td className="py-3 px-3 text-right align-top">
-                        {isEditing ? (
-                          <div className="flex items-center justify-end gap-1.5">
-                            <button
-                              onClick={() => savePriceSetting(item.category)}
-                              className="px-2.5 py-1 bg-white text-black text-[11px] uppercase font-semibold cursor-pointer hover:bg-neutral-200"
-                            >
-                              Save
-                            </button>
-                            <button
-                              onClick={() => setEditingCategory(null)}
-                              className="px-2 py-1 text-neutral-500 hover:text-white cursor-pointer"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              onClick={() => startEditPrice(item)}
-                              className="text-neutral-400 hover:text-white cursor-pointer text-xs"
-                            >
-                              Edit
-                            </button>
-                            <span className="text-neutral-700">|</span>
-                            <button
-                              onClick={() => handleDeleteCategory(item.category, item._id)}
-                              className="text-neutral-500 hover:text-rose-400 cursor-pointer p-1"
-                              title={`Delete ${item.category}`}
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
           </div>
         </div>
 

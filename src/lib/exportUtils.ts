@@ -2,13 +2,14 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 
-export function exportToExcel(entries: any[], filename = "Autoline_CarWash_Report.xlsx") {
-  const totalAmount = entries.reduce((acc, curr) => acc + (curr.amount || 0), 0);
-  const upiTotal = entries.filter(e => e.paymentMode?.includes("UPI")).reduce((acc, curr) => acc + (curr.amount || 0), 0);
-  const cashTotal = entries.filter(e => e.paymentMode === "Cash").reduce((acc, curr) => acc + (curr.amount || 0), 0);
-  const pendingTotal = entries.filter(e => e.paymentMode === "Pending" || e.paymentStatus === "Pending").reduce((acc, curr) => acc + (curr.amount || 0), 0);
+export function exportToExcel(entries: any[], filename = "Autoline_CarWash_Report.xlsx", expenses: any[] = []) {
+  const totalWashAmount = entries.reduce((acc, curr) => acc + (curr.amount || 0), 0);
+  const upiWash = entries.filter(e => e.paymentMode?.includes("UPI")).reduce((acc, curr) => acc + (curr.amount || 0), 0);
+  const cashWash = entries.filter(e => e.paymentMode === "Cash").reduce((acc, curr) => acc + (curr.amount || 0), 0);
+  const pendingWash = entries.filter(e => e.paymentMode === "Pending" || e.paymentStatus === "Pending").reduce((acc, curr) => acc + (curr.amount || 0), 0);
+  const totalExpenseAmount = expenses.reduce((acc, curr) => acc + (curr.amount || 0), 0);
 
-  const data: any[] = entries.map((e, idx) => ({
+  const washRows: any[] = entries.map((e, idx) => ({
     "S.No": idx + 1,
     "Date & Time": new Date(e.createdAt).toLocaleString("en-IN"),
     "Vehicle No": e.vehicleNumber,
@@ -24,30 +25,63 @@ export function exportToExcel(entries: any[], filename = "Autoline_CarWash_Repor
     "Notes": e.notes || "-",
   }));
 
-  // Append Grand Total Row at bottom
-  data.push({
+  // Append Grand Total Row at bottom of Washes
+  washRows.push({
     "S.No": "TOTAL",
-    "Date & Time": `Total Count: ${entries.length}`,
+    "Date & Time": `Total Vehicles: ${entries.length}`,
     "Vehicle No": "",
     "Customer Phone": "",
     "Customer Name": "",
     "Make": "",
     "Model": "",
     "Category": "",
-    "Service": "GRAND TOTAL",
-    "Amount (INR)": totalAmount,
-    "Payment Mode": `Cash: ${cashTotal} | UPI: ${upiTotal}`,
-    "Payment Status": `Pending: ${pendingTotal}`,
-    "Notes": `Paid: ${totalAmount - pendingTotal}`,
+    "Service": "GROSS INFLOW",
+    "Amount (INR)": totalWashAmount,
+    "Payment Mode": `Cash: ${cashWash} | UPI: ${upiWash}`,
+    "Payment Status": `Pending: ${pendingWash}`,
+    "Notes": `Expenses: ${totalExpenseAmount} | Net: ${totalWashAmount - totalExpenseAmount}`,
   });
 
-  const worksheet = XLSX.utils.json_to_sheet(data);
   const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Wash Records");
+  const washSheet = XLSX.utils.json_to_sheet(washRows);
+  XLSX.utils.book_append_sheet(workbook, washSheet, "Vehicle Washes");
+
+  if (expenses.length > 0) {
+    const expenseRows: any[] = expenses.map((exp, idx) => ({
+      "S.No": idx + 1,
+      "Date & Time": new Date(exp.createdAt).toLocaleString("en-IN"),
+      "Expense Title": exp.title,
+      "Category": exp.category,
+      "Amount (INR)": exp.amount,
+      "Payment Mode": exp.paymentMode,
+      "Paid By": exp.paidBy || "-",
+      "Notes": exp.notes || "-",
+    }));
+
+    expenseRows.push({
+      "S.No": "TOTAL",
+      "Date & Time": `Total Expenses: ${expenses.length}`,
+      "Expense Title": "TOTAL OUTFLOW",
+      "Category": "",
+      "Amount (INR)": totalExpenseAmount,
+      "Payment Mode": "",
+      "Paid By": "",
+      "Notes": "",
+    });
+
+    const expenseSheet = XLSX.utils.json_to_sheet(expenseRows);
+    XLSX.utils.book_append_sheet(workbook, expenseSheet, "Shop Expenses");
+  }
+
   XLSX.writeFile(workbook, filename);
 }
 
-export function exportToPDF(entries: any[], title = "Autoline Car Wash - Revenue Report", subtitle = "") {
+export function exportToPDF(
+  entries: any[], 
+  title = "Autoline Car Wash - Revenue Report", 
+  subtitle = "",
+  expenses: any[] = []
+) {
   // A4 Landscape orientation: 297mm x 210mm
   const doc = new jsPDF({
     orientation: "landscape",
@@ -105,36 +139,43 @@ export function exportToPDF(entries: any[], title = "Autoline Car Wash - Revenue
     doc.text(`Filter Parameters: ${subtitle}`, 14, 42);
   }
 
-  // 3. Financial Aggregate Metrics Cards
-  const totalAmount = entries.reduce((acc, curr) => acc + (curr.amount || 0), 0);
-  const upiTotal = entries.filter(e => e.paymentMode?.includes("UPI")).reduce((acc, curr) => acc + (curr.amount || 0), 0);
-  const cashTotal = entries.filter(e => e.paymentMode === "Cash").reduce((acc, curr) => acc + (curr.amount || 0), 0);
-  const pendingTotal = entries.filter(e => e.paymentMode === "Pending" || e.paymentStatus === "Pending").reduce((acc, curr) => acc + (curr.amount || 0), 0);
-  const paidTotal = totalAmount - pendingTotal;
+  // 3. Financial Aggregate Metrics Cards (Income, Expenses, Net Profit, Dues)
+  const totalWashAmount = entries.reduce((acc, curr) => acc + (curr.amount || 0), 0);
+  const upiWash = entries.filter(e => e.paymentMode?.includes("UPI")).reduce((acc, curr) => acc + (curr.amount || 0), 0);
+  const cashWash = entries.filter(e => e.paymentMode === "Cash").reduce((acc, curr) => acc + (curr.amount || 0), 0);
+  const pendingWash = entries.filter(e => e.paymentMode === "Pending" || e.paymentStatus === "Pending").reduce((acc, curr) => acc + (curr.amount || 0), 0);
+  const totalExpenseAmount = expenses.reduce((acc, curr) => acc + (curr.amount || 0), 0);
+  const netProfit = totalWashAmount - totalExpenseAmount;
 
   const cardY = subtitle ? 46 : 41;
   const cardHeight = 15;
-  const gap = 3.5;
-  const totalCards = 5;
+  const gap = 3;
+  const totalCards = 6;
   const startX = 14;
   const availableWidth = pageWidth - 28;
   const cardWidth = (availableWidth - (gap * (totalCards - 1))) / totalCards;
 
   const cardsData = [
     { label: "TOTAL VEHICLES", value: `${entries.length}`, highlight: false },
-    { label: "GROSS REVENUE", value: `Rs. ${totalAmount.toLocaleString("en-IN")}`, highlight: true },
-    { label: "COLLECTED CASH", value: `Rs. ${cashTotal.toLocaleString("en-IN")}`, highlight: false },
-    { label: "COLLECTED UPI", value: `Rs. ${upiTotal.toLocaleString("en-IN")}`, highlight: false },
-    { label: "PENDING DUES", value: `Rs. ${pendingTotal.toLocaleString("en-IN")}`, highlight: pendingTotal > 0, alert: pendingTotal > 0 },
+    { label: "GROSS INFLOW", value: `Rs. ${totalWashAmount.toLocaleString("en-IN")}`, highlight: true },
+    { label: "SHOP EXPENSES", value: `Rs. ${totalExpenseAmount.toLocaleString("en-IN")}`, isExpense: true },
+    { label: "NET PROFIT", value: `Rs. ${netProfit.toLocaleString("en-IN")}`, isNet: true },
+    { label: "CASH / UPI", value: `${cashWash} / ${upiWash}`, highlight: false },
+    { label: "PENDING DUES", value: `Rs. ${pendingWash.toLocaleString("en-IN")}`, alert: pendingWash > 0 },
   ];
 
   cardsData.forEach((card, idx) => {
     const x = startX + idx * (cardWidth + gap);
 
-    // Card background
     if (card.alert) {
       doc.setFillColor(254, 242, 242); // Rose 50
       doc.setDrawColor(244, 63, 94); // Rose 500
+    } else if (card.isExpense) {
+      doc.setFillColor(255, 251, 235); // Amber 50
+      doc.setDrawColor(245, 158, 11); // Amber 500
+    } else if (card.isNet) {
+      doc.setFillColor(240, 253, 244); // Green 50
+      doc.setDrawColor(34, 197, 94); // Green 500
     } else if (card.highlight) {
       doc.setFillColor(241, 245, 249); // Slate 100
       doc.setDrawColor(15, 23, 42); // Slate 900
@@ -147,17 +188,25 @@ export function exportToPDF(entries: any[], title = "Autoline Car Wash - Revenue
 
     // Card Label
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(6.5);
-    doc.setTextColor(card.alert ? 190 : 100, card.alert ? 18 : 116, card.alert ? 60 : 139);
-    doc.text(card.label, x + 3.5, cardY + 5);
+    doc.setFontSize(6);
+    if (card.alert) doc.setTextColor(190, 18, 60);
+    else if (card.isExpense) doc.setTextColor(180, 83, 9);
+    else if (card.isNet) doc.setTextColor(21, 128, 61);
+    else doc.setTextColor(100, 116, 139);
+
+    doc.text(card.label, x + 3, cardY + 4.8);
 
     // Card Value
-    doc.setFontSize(10);
-    doc.setTextColor(card.alert ? 190 : 15, card.alert ? 24 : 23, card.alert ? 24 : 42);
-    doc.text(card.value, x + 3.5, cardY + 11.5);
+    doc.setFontSize(9);
+    if (card.alert) doc.setTextColor(190, 24, 24);
+    else if (card.isExpense) doc.setTextColor(180, 83, 9);
+    else if (card.isNet) doc.setTextColor(21, 128, 61);
+    else doc.setTextColor(15, 23, 42);
+
+    doc.text(card.value, x + 3, cardY + 11.2);
   });
 
-  // 4. Data Table Rows
+  // 4. Vehicle Washes Table
   const tableBody = entries.map((e, idx) => {
     const isPending = e.paymentMode === "Pending" || e.paymentStatus === "Pending";
     const d = new Date(e.createdAt);
@@ -179,7 +228,6 @@ export function exportToPDF(entries: any[], title = "Autoline Car Wash - Revenue
     ];
   });
 
-  // Dedicated Grand Total Footer
   const tableFoot = [
     [
       "",
@@ -187,11 +235,11 @@ export function exportToPDF(entries: any[], title = "Autoline Car Wash - Revenue
       "",
       "",
       "",
-      "GRAND TOTAL",
-      `Paid: Rs. ${paidTotal.toLocaleString("en-IN")}`,
-      `Rs. ${totalAmount.toLocaleString("en-IN")}`,
-      `Cash: ${cashTotal} | UPI: ${upiTotal}`,
-      pendingTotal > 0 ? `Due: Rs. ${pendingTotal.toLocaleString("en-IN")}` : "CLEARED"
+      "VEHICLES TOTAL",
+      `Due: Rs. ${pendingWash.toLocaleString("en-IN")}`,
+      `Rs. ${totalWashAmount.toLocaleString("en-IN")}`,
+      `Cash: ${cashWash} | UPI: ${upiWash}`,
+      pendingWash > 0 ? "HAS DUES" : "CLEARED"
     ]
   ];
 
@@ -269,16 +317,110 @@ export function exportToPDF(entries: any[], title = "Autoline Car Wash - Revenue
         }
       }
     },
-    didDrawPage: (data) => {
-      // Clean footer on every page
-      const pageStr = `Page ${data.pageNumber} of ${doc.getNumberOfPages()}`;
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(7.5);
-      doc.setTextColor(148, 163, 184);
-      doc.text("AUTOLINE CAR WASH • SYSTEM AUDIT REPORT", 14, pageHeight - 6);
-      doc.text(pageStr, pageWidth - 14, pageHeight - 6, { align: "right" });
-    }
   });
+
+  // 5. If expenses exist, append dedicated Shop Expenses Table in report
+  if (expenses && expenses.length > 0) {
+    const lastY = (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY : cardY + cardHeight + 20;
+
+    // Check if table needs a page break
+    if (lastY > pageHeight - 60) {
+      doc.addPage();
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.setTextColor(180, 83, 9); // Amber 700
+      doc.text("SHOP EXPENSES & OPERATIONAL OUTFLOWS", 14, 20);
+    } else {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.setTextColor(180, 83, 9);
+      doc.text("SHOP EXPENSES & OPERATIONAL OUTFLOWS", 14, lastY + 10);
+    }
+
+    const expStart = lastY > pageHeight - 60 ? 25 : lastY + 13;
+
+    const expenseTableBody = expenses.map((exp, idx) => {
+      const d = new Date(exp.createdAt);
+      const dateFormatted = d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "2-digit" });
+      const timeFormatted = d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
+
+      return [
+        idx + 1,
+        `${dateFormatted} ${timeFormatted}`,
+        exp.title,
+        exp.category,
+        exp.paidBy || "-",
+        exp.paymentMode || "Cash",
+        `Rs. ${exp.amount.toLocaleString("en-IN")}`
+      ];
+    });
+
+    const expenseTableFoot = [
+      [
+        "",
+        `Total: ${expenses.length} expenses`,
+        "EXPENSES TOTAL",
+        "",
+        "",
+        "TOTAL OUTFLOW",
+        `Rs. ${totalExpenseAmount.toLocaleString("en-IN")}`
+      ]
+    ];
+
+    autoTable(doc, {
+      startY: expStart,
+      head: [["#", "DATE & TIME", "EXPENSE TITLE", "CATEGORY", "PAID BY", "MODE", "AMOUNT"]],
+      body: expenseTableBody,
+      foot: expenseTableFoot,
+      theme: "plain",
+      tableWidth: availableWidth,
+      margin: { left: 14, right: 14 },
+      headStyles: {
+        fillColor: [180, 83, 9], // Amber 700
+        textColor: [255, 255, 255],
+        fontStyle: "bold",
+        fontSize: 7.5,
+        cellPadding: { top: 3, bottom: 3, left: 2.5, right: 2.5 },
+      },
+      bodyStyles: {
+        fontSize: 8,
+        cellPadding: { top: 2.5, bottom: 2.5, left: 2.5, right: 2.5 },
+        textColor: [69, 26, 3], // Amber 950
+        lineColor: [254, 215, 170], // Orange 200
+        lineWidth: 0.2
+      },
+      alternateRowStyles: {
+        fillColor: [255, 251, 235] // Amber 50
+      },
+      footStyles: {
+        fillColor: [120, 53, 15], // Amber 900
+        textColor: [255, 255, 255],
+        fontStyle: "bold",
+        fontSize: 8,
+        cellPadding: { top: 3, bottom: 3, left: 2.5, right: 2.5 }
+      },
+      columnStyles: {
+        0: { cellWidth: 10, halign: "center" },
+        1: { cellWidth: 35 },
+        2: { cellWidth: 65, fontStyle: "bold" },
+        3: { cellWidth: 45 },
+        4: { cellWidth: 40 },
+        5: { cellWidth: 30, halign: "center" },
+        6: { cellWidth: 44, halign: "right", fontStyle: "bold" }
+      }
+    });
+  }
+
+  // Final Footer on all pages
+  const totalPages = doc.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7.5);
+    doc.setTextColor(148, 163, 184);
+    doc.text("AUTOLINE CAR WASH • SYSTEM AUDIT REPORT", 14, pageHeight - 6);
+    doc.text(`Page ${i} of ${totalPages}`, pageWidth - 14, pageHeight - 6, { align: "right" });
+  }
 
   doc.save(`${title.replace(/[^a-zA-Z0-9]/g, "_")}.pdf`);
 }
