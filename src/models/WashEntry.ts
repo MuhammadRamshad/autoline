@@ -7,7 +7,7 @@ export interface IWashEntry {
   make: string;
   model: string;
   category: string;
-  serviceType: "Basic Wash" | "Water Wash + Vacuum" | "Full Deep Cleaning" | "Custom";
+  serviceType: string;
   amount: number;
   paymentMode: "UPI / QR" | "Cash" | "Pending";
   paymentStatus: "Paid" | "Pending";
@@ -36,8 +36,7 @@ const WashEntrySchema = new Schema<IWashEntry>(
     category: { type: String, required: true, default: "Hatchback (5 Seater)" },
     serviceType: { 
       type: String, 
-      enum: ["Basic Wash", "Water Wash + Vacuum", "Full Deep Cleaning", "Custom"],
-      default: "Basic Wash" 
+      default: "Full Wash" 
     },
     amount: { type: Number, required: true, min: 0 },
     paymentMode: { 

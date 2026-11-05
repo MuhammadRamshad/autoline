@@ -108,7 +108,7 @@ export async function POST(request: Request) {
       make: make || "",
       model: model || "",
       category: category || "Hatchback (5 Seater)",
-      serviceType: serviceType || "Basic Wash",
+      serviceType: serviceType || "Full Wash",
       amount: Number(amount),
       paymentMode: paymentMode || "UPI / QR",
       paymentStatus: paymentStatus || (paymentMode === "Pending" ? "Pending" : "Paid"),

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, CheckCircle2, AlertCircle, X } from "lucide-react";
 import { INDIAN_VEHICLES_DATABASE, IndianVehicleModel } from "@/lib/vehicleDatabase";
 
 export default function ShopkeeperCounterPage() {
@@ -16,6 +16,21 @@ export default function ShopkeeperCounterPage() {
   const [paymentMode, setPaymentMode] = useState<string>("UPI / QR");
   const [notes, setNotes] = useState("");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  // Modern Toast Notification State
+  const [toast, setToast] = useState<{ type: "success" | "error" | "info"; message: string } | null>(null);
+
+  const showToast = (message: string, type: "success" | "error" | "info" = "info") => {
+    setToast({ type, message });
+  };
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => {
+      setToast(null);
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [toast]);
 
   const [pricesList, setPricesList] = useState<any[]>([]);
   const [vehicleSearchText, setVehicleSearchText] = useState("");
@@ -87,15 +102,17 @@ export default function ShopkeeperCounterPage() {
         if (lastSubmittedEntry && lastSubmittedEntry._id === id) {
           setLastSubmittedEntry({ ...lastSubmittedEntry, paymentStatus: "Paid", paymentMode: mode });
         }
+        showToast(`Settled as ${mode}`, "success");
       } else {
-        alert("Failed to update status: " + (data.error || "Server error"));
+        showToast(data.error || "Failed to update status", "error");
       }
     } catch (err: any) {
-      alert("Error: " + err.message);
+      showToast(err.message || "Error settling amount", "error");
     } finally {
       setUpdatingId(null);
     }
   };
+
   useEffect(() => {
     if (!vehicleSearchText.trim()) {
       setFilteredVehicles([]);
@@ -115,20 +132,27 @@ export default function ShopkeeperCounterPage() {
     setSelectedMake(v.make);
     setSelectedModel(v.model);
     setSelectedCategory(v.category);
+    // Auto-update amount according to category rate
+    const catTariff = pricesList.find((p) => p.category === v.category);
+    if (catTariff && catTariff.price !== undefined) {
+      setAmount(catTariff.price);
+    } else {
+      setAmount(v.defaultWashPrice);
+    }
     setVehicleSearchText(`${v.make} ${v.model}`);
     setShowDropdown(false);
+    showToast(`Selected ${v.make} ${v.model} (${v.category})`, "info");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitFeedback(null);
 
     if (!vehicleNumber.trim()) {
-      alert("Please enter a vehicle number");
+      showToast("Please enter a vehicle number", "error");
       return;
     }
     if (!customerPhone.trim()) {
-      alert("Please enter customer phone number");
+      showToast("Please enter customer phone number", "error");
       return;
     }
 
@@ -157,7 +181,10 @@ export default function ShopkeeperCounterPage() {
       const data = await res.json();
       if (res.ok && data.success) {
         setLastSubmittedEntry(data.entry);
-        setSubmitFeedback(`Recorded ${data.entry.vehicleNumber} (₹${data.entry.amount} • ${data.entry.paymentMode})`);
+        showToast(
+          `Recorded ${data.entry.vehicleNumber} (₹${data.entry.amount} • ${data.entry.paymentMode})`,
+          "success"
+        );
         setVehicleNumber("");
         setCustomerPhone("");
         setCustomerName("");
@@ -167,10 +194,10 @@ export default function ShopkeeperCounterPage() {
         setNotes("");
         fetchRecentEntries();
       } else {
-        alert("Failed to submit entry: " + (data.error || "Server error"));
+        showToast(data.error || "Failed to submit entry", "error");
       }
     } catch (err: any) {
-      alert("Error: " + err.message);
+      showToast(err.message || "Network error", "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -190,10 +217,26 @@ export default function ShopkeeperCounterPage() {
           <span className="text-xs font-mono text-neutral-500 uppercase">Autoline</span>
         </div>
 
-        {submitFeedback && (
-          <div className="mb-6 p-3 bg-neutral-900 border border-neutral-700 text-xs font-mono text-white flex items-center justify-between">
-            <span>✓ {submitFeedback}</span>
-            <button onClick={() => setSubmitFeedback(null)} className="text-neutral-400 hover:text-white cursor-pointer">✕</button>
+        {/* Floating Top-Right Toast Notification */}
+        {toast && (
+          <div className="fixed top-20 right-6 z-50 flex items-center gap-3 px-4 py-3 shadow-2xl rounded border font-mono text-xs animate-in fade-in slide-in-from-top-4 duration-200 transition-all bg-neutral-950 backdrop-blur-md max-w-sm">
+            {toast.type === "success" && <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />}
+            {toast.type === "error" && <AlertCircle className="h-4 w-4 text-rose-400 shrink-0" />}
+            {toast.type === "info" && <CheckCircle2 className="h-4 w-4 text-sky-400 shrink-0" />}
+            
+            <div className={`flex-1 ${
+              toast.type === "success" ? "text-emerald-300" :
+              toast.type === "error" ? "text-rose-300" : "text-sky-300"
+            }`}>
+              {toast.message}
+            </div>
+
+            <button
+              onClick={() => setToast(null)}
+              className="text-neutral-500 hover:text-white cursor-pointer ml-1"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
           </div>
         )}
 
