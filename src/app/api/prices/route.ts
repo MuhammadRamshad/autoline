@@ -30,7 +30,7 @@ export async function GET() {
       ).map((v) => `${v.make} ${v.model}`);
       return {
         ...p,
-        price: p.price ?? p.washPrice ?? 350,
+        price: p.price ?? 350,
         vehicles: matchingVehicles,
       };
     });
@@ -59,7 +59,6 @@ export async function POST(request: Request) {
       { category },
       { 
         price: Number(price),
-        washPrice: Number(price),
         notes: notes || "" 
       },
       { upsert: true, new: true }
