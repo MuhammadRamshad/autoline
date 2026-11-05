@@ -81,7 +81,7 @@ export default function AdminLoginPage() {
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="admin"
+                placeholder="Enter username"
                 className="w-full bg-black border border-neutral-800 px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-white"
               />
             </div>
@@ -108,10 +108,6 @@ export default function AdminLoginPage() {
               {loading ? "Verifying..." : "Sign In"}
             </button>
           </form>
-
-          <div className="text-[11px] font-mono text-neutral-600 text-center border-t border-neutral-900 pt-3">
-            admin / admin
-          </div>
         </div>
       </div>
     </div>
