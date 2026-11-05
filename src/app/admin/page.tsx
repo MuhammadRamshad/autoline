@@ -56,7 +56,9 @@ export default function AdminDashboardPage() {
   const fetchData = async (isBackground: boolean = false) => {
     try {
       if (!isBackground) setRefreshing(true);
-      const priceRes = await fetch("/api/prices");
+      // Append cache-busting timestamp to prevent intermediate browser/service-worker caching
+      const ts = Date.now();
+      const priceRes = await fetch(`/api/prices?_t=${ts}`, { cache: "no-store" });
       const priceData = await priceRes.json();
       if (priceData.success) {
         setPrices(priceData.prices);
@@ -69,8 +71,9 @@ export default function AdminDashboardPage() {
       if (selectedCategory && selectedCategory !== "All") params.append("category", selectedCategory);
       if (selectedPaymentMode && selectedPaymentMode !== "All") params.append("paymentMode", selectedPaymentMode);
       if (selectedStatus && selectedStatus !== "All") params.append("paymentStatus", selectedStatus);
+      params.append("_t", String(ts));
 
-      const entriesRes = await fetch(`/api/washes?${params.toString()}`);
+      const entriesRes = await fetch(`/api/washes?${params.toString()}`, { cache: "no-store" });
       const entriesData = await entriesRes.json();
       if (entriesData.success) {
         setEntries(entriesData.entries);
@@ -82,7 +85,8 @@ export default function AdminDashboardPage() {
       if (fromDate) expParams.append("fromDate", fromDate);
       if (toDate) expParams.append("toDate", toDate);
       if (searchQuery) expParams.append("search", searchQuery.trim());
-      const expRes = await fetch(`/api/expenses?${expParams.toString()}`);
+      expParams.append("_t", String(ts));
+      const expRes = await fetch(`/api/expenses?${expParams.toString()}`, { cache: "no-store" });
       const expData = await expRes.json();
       if (expData.success) {
         setExpenses(expData.expenses);
@@ -101,10 +105,10 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     fetchData();
 
-    // Auto-sync polling every 4 seconds to reflect shopkeeper entries, expenses, or settlements in real time
+    // Auto-sync polling every 2.5 seconds to reflect shopkeeper settlements, status edits, and entries instantly
     const interval = setInterval(() => {
       fetchData(true);
-    }, 4000);
+    }, 2500);
 
     const handleFocus = () => {
       fetchData(true);
@@ -115,7 +119,7 @@ export default function AdminDashboardPage() {
       clearInterval(interval);
       window.removeEventListener("focus", handleFocus);
     };
-  }, [fromDate, toDate, selectedCategory, selectedPaymentMode, selectedStatus]);
+  }, [fromDate, toDate, searchQuery, selectedCategory, selectedPaymentMode, selectedStatus]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();

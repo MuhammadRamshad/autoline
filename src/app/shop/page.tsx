@@ -70,7 +70,8 @@ export default function ShopkeeperCounterPage() {
 
   const fetchRecentExpenses = async () => {
     try {
-      const res = await fetch("/api/expenses?limit=4");
+      const ts = Date.now();
+      const res = await fetch(`/api/expenses?limit=4&_t=${ts}`, { cache: "no-store" });
       const data = await res.json();
       if (data.success && data.expenses) {
         setRecentExpenses(data.expenses);
@@ -128,12 +129,12 @@ export default function ShopkeeperCounterPage() {
     fetchRecentEntries();
     fetchRecentExpenses();
 
-    // Auto-sync polling every 4 seconds to instantly reflect Admin price changes or status updates
+    // Auto-sync polling every 2.5 seconds to instantly reflect Admin price changes or status updates
     const interval = setInterval(() => {
       fetchTariffs();
       fetchRecentEntries();
       fetchRecentExpenses();
-    }, 4000);
+    }, 2500);
 
     // Sync immediately when user switches back to this tab / window
     const handleFocus = () => {
@@ -151,7 +152,8 @@ export default function ShopkeeperCounterPage() {
 
   const fetchTariffs = async () => {
     try {
-      const res = await fetch("/api/prices");
+      const ts = Date.now();
+      const res = await fetch(`/api/prices?_t=${ts}`, { cache: "no-store" });
       const data = await res.json();
       if (data.success && data.prices) {
         setPricesList(data.prices);
@@ -167,7 +169,8 @@ export default function ShopkeeperCounterPage() {
 
   const fetchRecentEntries = async () => {
     try {
-      const res = await fetch("/api/washes?limit=6");
+      const ts = Date.now();
+      const res = await fetch(`/api/washes?limit=6&_t=${ts}`, { cache: "no-store" });
       const data = await res.json();
       if (data.success) {
         setRecentEntries(data.entries);
@@ -176,6 +179,8 @@ export default function ShopkeeperCounterPage() {
       console.error(e);
     }
   };
+
+
 
   // Automatically update the single amount whenever Category changes based on Admin's rate
   useEffect(() => {

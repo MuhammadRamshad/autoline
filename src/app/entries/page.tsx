@@ -42,6 +42,7 @@ export default function AllEntriesPage() {
   const fetchEntries = async () => {
     try {
       setLoading(true);
+      const ts = Date.now();
       const params = new URLSearchParams();
       if (search.trim()) params.append("search", search.trim());
       if (categoryFilter !== "All") params.append("category", categoryFilter);
@@ -49,8 +50,9 @@ export default function AllEntriesPage() {
       if (fromDate) params.append("fromDate", fromDate);
       if (toDate) params.append("toDate", toDate);
       params.append("limit", "1000");
+      params.append("_t", String(ts));
 
-      const res = await fetch(`/api/washes?${params.toString()}`);
+      const res = await fetch(`/api/washes?${params.toString()}`, { cache: "no-store" });
       const data = await res.json();
       if (data.success && data.entries) {
         setEntries(data.entries);
@@ -64,7 +66,19 @@ export default function AllEntriesPage() {
 
   useEffect(() => {
     fetchEntries();
-  }, [categoryFilter, statusFilter, fromDate, toDate]);
+
+    const interval = setInterval(() => {
+      fetchEntries();
+    }, 3000);
+
+    const handleFocus = () => fetchEntries();
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, [categoryFilter, statusFilter, fromDate, toDate, search]);
 
   // Group entries by Date (e.g. "Thursday, 5 November 2026")
   const groupedEntries: { [dateStr: string]: WashEntryItem[] } = {};
