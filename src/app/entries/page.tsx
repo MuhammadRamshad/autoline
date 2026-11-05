@@ -18,7 +18,10 @@ import {
 
 interface WashEntryItem {
   _id: string;
-  registrationNumber: string;
+  vehicleNumber?: string;
+  registrationNumber?: string;
+  make?: string;
+  model?: string;
   vehicleModel?: string;
   category: string;
   serviceType: string;
@@ -26,6 +29,7 @@ interface WashEntryItem {
   paymentStatus: string;
   amount: number;
   customerPhone?: string;
+  customerName?: string;
   notes?: string;
   createdAt: string;
 }
@@ -300,6 +304,8 @@ export default function AllEntriesPage() {
                               hour12: true,
                             });
                             const isPaid = entry.paymentStatus === "Paid";
+                            const regNum = entry.vehicleNumber || entry.registrationNumber || "-";
+                            const modelDisplay = [entry.make, entry.model].filter(Boolean).join(" ") || entry.vehicleModel;
 
                             return (
                               <tr key={entry._id} className="hover:bg-neutral-900/50 transition">
@@ -307,15 +313,21 @@ export default function AllEntriesPage() {
                                   {entryTime}
                                 </td>
                                 <td className="px-4 py-3 font-bold text-white tracking-wider whitespace-nowrap">
-                                  {entry.registrationNumber}
+                                  {regNum}
                                 </td>
                                 <td className="px-4 py-3">
-                                  <div className="font-semibold text-neutral-200">
-                                    {entry.category}
-                                  </div>
-                                  {entry.vehicleModel && (
-                                    <div className="text-[11px] text-neutral-500">
-                                      {entry.vehicleModel}
+                                  {modelDisplay ? (
+                                    <>
+                                      <div className="font-semibold text-white">
+                                        {modelDisplay}
+                                      </div>
+                                      <div className="text-[11px] text-neutral-400">
+                                        {entry.category}
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <div className="font-semibold text-neutral-200">
+                                      {entry.category}
                                     </div>
                                   )}
                                 </td>

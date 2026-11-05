@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import { 
   ChevronDown, 
@@ -15,7 +16,8 @@ import {
   QrCode,
   Save,
   Receipt,
-  Plus
+  Plus,
+  ArrowUpRight
 } from "lucide-react";
 import { INDIAN_VEHICLES_DATABASE, IndianVehicleModel } from "@/lib/vehicleDatabase";
 
@@ -794,7 +796,18 @@ export default function ShopkeeperCounterPage() {
             <div>
               <div className="text-xs font-mono uppercase tracking-wider text-neutral-500 mb-3 flex items-center justify-between">
                 <span>Recent Wash Entries</span>
-                <button onClick={fetchRecentEntries} className="hover:text-white cursor-pointer">Refresh</button>
+                <div className="flex items-center gap-3">
+                  <Link
+                    href="/entries"
+                    className="text-white hover:underline text-[11px] font-bold flex items-center gap-1"
+                  >
+                    <span>View All</span>
+                    <ArrowUpRight className="w-3 h-3" />
+                  </Link>
+                  <button onClick={fetchRecentEntries} className="hover:text-white cursor-pointer">
+                    Refresh
+                  </button>
+                </div>
               </div>
               <div className="divide-y divide-neutral-900 border border-neutral-900">
                 {recentEntries.length === 0 ? (
@@ -802,6 +815,7 @@ export default function ShopkeeperCounterPage() {
                 ) : (
                   recentEntries.map((e) => {
                     const isPending = e.paymentMode === "Pending" || e.paymentStatus === "Pending";
+                    const vehicleDisplayName = [e.make, e.model].filter(Boolean).join(" ");
                     return (
                       <div
                         key={e._id}
@@ -813,6 +827,11 @@ export default function ShopkeeperCounterPage() {
                           <div>
                             <div className="flex items-center gap-2">
                               <span className="font-mono font-bold text-white tracking-wide">{e.vehicleNumber}</span>
+                              {vehicleDisplayName && (
+                                <span className="text-[11px] font-mono text-neutral-300 font-medium">
+                                  ({vehicleDisplayName})
+                                </span>
+                              )}
                               {isPending ? (
                                 <span className="text-[9px] font-mono uppercase bg-amber-500/20 text-amber-300 border border-amber-500/50 px-1.5 py-0.5 rounded font-bold flex items-center gap-1">
                                   <Clock className="h-2.5 w-2.5" />
