@@ -8,22 +8,30 @@ import {
   RefreshCw,
   Car,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Search,
+  Calendar,
+  Filter,
+  X,
+  FileSpreadsheet,
+  FileText
 } from "lucide-react";
 import { exportToExcel, exportToPDF } from "@/lib/exportUtils";
 
 export default function AdminDashboardPage() {
   const [prices, setPrices] = useState<any[]>([]);
   const [entries, setEntries] = useState<any[]>([]);
-  const [stats, setStats] = useState({ totalAmount: 0, upiAmount: 0, cashAmount: 0, pendingAmount: 0, pendingCount: 0, count: 0 });
+  const [stats, setStats] = useState({ totalAmount: 0, upiAmount: 0, cashAmount: 0, pendingAmount: 0, pendingCount: 0, paidCount: 0, count: 0 });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
-  const [filterDate, setFilterDate] = useState<string>("");
+  // Advanced Filters
+  const [fromDate, setFromDate] = useState<string>("");
+  const [toDate, setToDate] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
-  const [selectedPayment, setSelectedPayment] = useState("All");
+  const [selectedPaymentMode, setSelectedPaymentMode] = useState("All");
   const [selectedStatus, setSelectedStatus] = useState("All");
 
   // Single price edit
@@ -46,10 +54,11 @@ export default function AdminDashboardPage() {
       }
 
       const params = new URLSearchParams();
-      if (filterDate) params.append("date", filterDate);
-      if (searchQuery) params.append("search", searchQuery);
+      if (fromDate) params.append("fromDate", fromDate);
+      if (toDate) params.append("toDate", toDate);
+      if (searchQuery) params.append("search", searchQuery.trim());
       if (selectedCategory && selectedCategory !== "All") params.append("category", selectedCategory);
-      if (selectedPayment && selectedPayment !== "All") params.append("paymentMode", selectedPayment);
+      if (selectedPaymentMode && selectedPaymentMode !== "All") params.append("paymentMode", selectedPaymentMode);
       if (selectedStatus && selectedStatus !== "All") params.append("paymentStatus", selectedStatus);
 
       const entriesRes = await fetch(`/api/washes?${params.toString()}`);
@@ -68,11 +77,72 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     fetchData();
-  }, [filterDate, selectedCategory, selectedPayment, selectedStatus]);
+  }, [fromDate, toDate, selectedCategory, selectedPaymentMode, selectedStatus]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     fetchData();
+  };
+
+  const clearAllFilters = () => {
+    setFromDate("");
+    setToDate("");
+    setSearchQuery("");
+    setSelectedCategory("All");
+    setSelectedPaymentMode("All");
+    setSelectedStatus("All");
+  };
+
+  // Quick Preset Handlers
+  const setQuickDatePreset = (preset: "today" | "yesterday" | "thisMonth" | "clear") => {
+    const today = new Date();
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    const fmt = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+    if (preset === "today") {
+      const dStr = fmt(today);
+      setFromDate(dStr);
+      setToDate(dStr);
+    } else if (preset === "yesterday") {
+      const y = new Date();
+      y.setDate(y.getDate() - 1);
+      const dStr = fmt(y);
+      setFromDate(dStr);
+      setToDate(dStr);
+    } else if (preset === "thisMonth") {
+      const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+      setFromDate(fmt(firstDay));
+      setToDate(fmt(today));
+    } else if (preset === "clear") {
+      setFromDate("");
+      setToDate("");
+    }
+  };
+
+  // Human-readable filter subtitle for Export Reports
+  const getFilterSummaryString = () => {
+    const parts = [];
+    if (fromDate && toDate) parts.push(`${fromDate} to ${toDate}`);
+    else if (fromDate) parts.push(`From ${fromDate}`);
+    else if (toDate) parts.push(`Up to ${toDate}`);
+    else parts.push("All Time");
+
+    if (selectedStatus !== "All") parts.push(`Status: ${selectedStatus}`);
+    if (selectedPaymentMode !== "All") parts.push(`Mode: ${selectedPaymentMode}`);
+    if (selectedCategory !== "All") parts.push(`Category: ${selectedCategory}`);
+    if (searchQuery) parts.push(`Query: "${searchQuery}"`);
+
+    return parts.join(" • ");
+  };
+
+  const handleExportExcel = () => {
+    const filename = `Autoline_Report_${fromDate || "Start"}_to_${toDate || "End"}.xlsx`;
+    exportToExcel(entries, filename);
+  };
+
+  const handleExportPDF = () => {
+    const subtitle = getFilterSummaryString();
+    exportToPDF(entries, "Autoline Wash Report", subtitle);
   };
 
   const startEditPrice = (item: any) => {
@@ -194,25 +264,31 @@ export default function AdminDashboardPage() {
             <button
               onClick={() => fetchData()}
               disabled={refreshing}
-              className="px-3 py-2 bg-neutral-900 hover:bg-neutral-800 text-xs font-mono text-neutral-300 border border-neutral-800 cursor-pointer"
+              className="px-3 py-2 bg-neutral-900 hover:bg-neutral-800 text-xs font-mono text-neutral-300 border border-neutral-800 cursor-pointer flex items-center gap-1.5"
+              title="Refresh Data"
             >
               <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
+              <span className="hidden sm:inline">Refresh</span>
             </button>
 
             <button
-              onClick={() => exportToExcel(entries, `Autoline_Report_${filterDate || "All"}.xlsx`)}
+              onClick={handleExportExcel}
               disabled={entries.length === 0}
-              className="px-4 py-2 bg-neutral-900 hover:bg-neutral-800 text-xs font-mono uppercase tracking-wider text-neutral-300 border border-neutral-800 disabled:opacity-40 cursor-pointer"
+              className="px-4 py-2 bg-neutral-900 hover:bg-neutral-800 text-xs font-mono uppercase tracking-wider text-neutral-300 border border-neutral-800 disabled:opacity-40 cursor-pointer flex items-center gap-1.5"
+              title="Export filtered records to Excel"
             >
-              Excel
+              <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-400" />
+              <span>Excel ({entries.length})</span>
             </button>
 
             <button
-              onClick={() => exportToPDF(entries, "Autoline Wash Report", filterDate || "")}
+              onClick={handleExportPDF}
               disabled={entries.length === 0}
-              className="px-4 py-2 bg-white text-black text-xs font-mono uppercase tracking-wider font-semibold hover:bg-neutral-200 disabled:opacity-40 cursor-pointer"
+              className="px-4 py-2 bg-white text-black text-xs font-mono uppercase tracking-wider font-semibold hover:bg-neutral-200 disabled:opacity-40 cursor-pointer flex items-center gap-1.5"
+              title="Export filtered report to PDF"
             >
-              PDF
+              <FileText className="h-3.5 w-3.5" />
+              <span>PDF Report</span>
             </button>
           </div>
         </div>
@@ -408,52 +484,212 @@ export default function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Wash Records */}
-        <div className="border border-neutral-900 p-5 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <h2 className="text-sm font-mono uppercase tracking-wider text-neutral-300">Wash Records</h2>
+        {/* Wash Records with Advanced Multi-Filter */}
+        <div className="border border-neutral-900 p-5 space-y-5">
+          
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-neutral-900 pb-4">
+            <div>
+              <h2 className="text-sm font-mono uppercase tracking-wider text-neutral-200 flex items-center gap-2">
+                <Filter className="h-4 w-4 text-sky-400" />
+                <span>Wash Records & Reports</span>
+              </h2>
+              <p className="text-[11px] font-mono text-neutral-500 mt-0.5">
+                Filtered view: {entries.length} records matching • {getFilterSummaryString()}
+              </p>
+            </div>
+
+            {/* Quick Date Presets */}
+            <div className="flex flex-wrap items-center gap-1.5 text-xs font-mono">
+              <span className="text-[10px] text-neutral-500 uppercase mr-1">Quick:</span>
+              <button
+                type="button"
+                onClick={() => setQuickDatePreset("today")}
+                className="px-2 py-1 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 border border-neutral-800 cursor-pointer"
+              >
+                Today
+              </button>
+              <button
+                type="button"
+                onClick={() => setQuickDatePreset("yesterday")}
+                className="px-2 py-1 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 border border-neutral-800 cursor-pointer"
+              >
+                Yesterday
+              </button>
+              <button
+                type="button"
+                onClick={() => setQuickDatePreset("thisMonth")}
+                className="px-2 py-1 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 border border-neutral-800 cursor-pointer"
+              >
+                This Month
+              </button>
+              <button
+                type="button"
+                onClick={clearAllFilters}
+                className="px-2 py-1 text-neutral-400 hover:text-white cursor-pointer ml-1 underline text-[11px]"
+              >
+                Reset All
+              </button>
+            </div>
+          </div>
+
+          {/* Filtering Controls Grid */}
+          <form onSubmit={handleSearchSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
             
-            <form onSubmit={handleSearchSubmit} className="flex flex-wrap items-center gap-2">
+            {/* From Date */}
+            <div>
+              <label className="block text-[10px] uppercase font-mono tracking-wider text-neutral-400 mb-1">
+                From Date
+              </label>
               <input
                 type="date"
-                value={filterDate}
-                onChange={(e) => setFilterDate(e.target.value)}
-                className="bg-black border border-neutral-800 text-xs text-neutral-300 px-2 py-1"
+                value={fromDate}
+                onChange={(e) => setFromDate(e.target.value)}
+                className="w-full bg-black border border-neutral-800 text-xs font-mono text-neutral-200 px-2.5 py-2 focus:outline-none focus:border-white"
               />
+            </div>
+
+            {/* To Date */}
+            <div>
+              <label className="block text-[10px] uppercase font-mono tracking-wider text-neutral-400 mb-1">
+                To Date
+              </label>
+              <input
+                type="date"
+                value={toDate}
+                onChange={(e) => setToDate(e.target.value)}
+                className="w-full bg-black border border-neutral-800 text-xs font-mono text-neutral-200 px-2.5 py-2 focus:outline-none focus:border-white"
+              />
+            </div>
+
+            {/* Category Filter */}
+            <div>
+              <label className="block text-[10px] uppercase font-mono tracking-wider text-neutral-400 mb-1">
+                Category
+              </label>
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="bg-black border border-neutral-800 text-xs text-neutral-300 px-2 py-1"
+                className="w-full bg-black border border-neutral-800 text-xs font-mono text-neutral-200 px-2.5 py-2 focus:outline-none focus:border-white cursor-pointer"
               >
                 <option value="All">All Categories</option>
                 {prices.map(p => <option key={p.category} value={p.category}>{p.category}</option>)}
               </select>
+            </div>
+
+            {/* Payment Mode (UPI / Cash / Pending / All) */}
+            <div>
+              <label className="block text-[10px] uppercase font-mono tracking-wider text-neutral-400 mb-1">
+                Payment Mode
+              </label>
+              <select
+                value={selectedPaymentMode}
+                onChange={(e) => setSelectedPaymentMode(e.target.value)}
+                className="w-full bg-black border border-neutral-800 text-xs font-mono text-neutral-200 px-2.5 py-2 focus:outline-none focus:border-white cursor-pointer"
+              >
+                <option value="All">All Payment Modes</option>
+                <option value="UPI / QR">UPI / QR Only</option>
+                <option value="Cash">Cash Only</option>
+                <option value="Pending">Pending / Pay Later</option>
+              </select>
+            </div>
+
+            {/* Payment Status (Paid / Pending / All) */}
+            <div>
+              <label className="block text-[10px] uppercase font-mono tracking-wider text-neutral-400 mb-1">
+                Payment Status
+              </label>
               <select
                 value={selectedStatus}
                 onChange={(e) => setSelectedStatus(e.target.value)}
-                className="bg-black border border-neutral-800 text-xs text-neutral-300 px-2 py-1"
+                className="w-full bg-black border border-neutral-800 text-xs font-mono text-neutral-200 px-2.5 py-2 focus:outline-none focus:border-white cursor-pointer"
               >
                 <option value="All">All Statuses</option>
-                <option value="Paid">Paid Only</option>
-                <option value="Pending">Pending Only</option>
+                <option value="Paid">✓ Paid Only</option>
+                <option value="Pending">⏳ Pending Dues Only</option>
               </select>
-              <input
-                type="text"
-                placeholder="Search vehicle / phone"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-black border border-neutral-800 text-xs text-neutral-300 px-2 py-1 w-36"
-              />
-            </form>
-          </div>
+            </div>
 
+            {/* Universal Search (Registration, Phone, Owner, Make, Model) */}
+            <div>
+              <label className="block text-[10px] uppercase font-mono tracking-wider text-neutral-400 mb-1">
+                Search Query
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Reg No / Phone / Owner"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-black border border-neutral-800 text-xs font-mono text-white pl-2.5 pr-7 py-2 focus:outline-none focus:border-white"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-2 top-2 text-neutral-500 hover:text-white cursor-pointer"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+          </form>
+
+          {/* Active Filter Indicators */}
+          {(fromDate || toDate || searchQuery || selectedCategory !== "All" || selectedPaymentMode !== "All" || selectedStatus !== "All") && (
+            <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[11px] font-mono">
+              <span className="text-neutral-500 text-[10px] uppercase">Active Filters:</span>
+              {fromDate && (
+                <span className="bg-neutral-900 border border-neutral-800 text-neutral-300 px-2 py-0.5 rounded">
+                  From: {fromDate}
+                </span>
+              )}
+              {toDate && (
+                <span className="bg-neutral-900 border border-neutral-800 text-neutral-300 px-2 py-0.5 rounded">
+                  To: {toDate}
+                </span>
+              )}
+              {selectedCategory !== "All" && (
+                <span className="bg-neutral-900 border border-neutral-800 text-neutral-300 px-2 py-0.5 rounded">
+                  Category: {selectedCategory}
+                </span>
+              )}
+              {selectedPaymentMode !== "All" && (
+                <span className="bg-neutral-900 border border-neutral-800 text-neutral-300 px-2 py-0.5 rounded">
+                  Mode: {selectedPaymentMode}
+                </span>
+              )}
+              {selectedStatus !== "All" && (
+                <span className="bg-amber-950/40 border border-amber-600/40 text-amber-300 px-2 py-0.5 rounded">
+                  Status: {selectedStatus}
+                </span>
+              )}
+              {searchQuery && (
+                <span className="bg-sky-950/40 border border-sky-600/40 text-sky-300 px-2 py-0.5 rounded">
+                  "{searchQuery}"
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={clearAllFilters}
+                className="text-neutral-400 hover:text-white cursor-pointer ml-1 underline text-[10px]"
+              >
+                Clear Filters
+              </button>
+            </div>
+          )}
+
+          {/* Table */}
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs font-mono">
               <thead className="border-b border-neutral-900 text-neutral-500 uppercase">
                 <tr>
                   <th className="py-2.5 px-3">Date</th>
-                  <th className="py-2.5 px-3">Vehicle</th>
+                  <th className="py-2.5 px-3">Vehicle No</th>
+                  <th className="py-2.5 px-3">Vehicle Model</th>
                   <th className="py-2.5 px-3">Category</th>
+                  <th className="py-2.5 px-3">Customer</th>
                   <th className="py-2.5 px-3">Phone</th>
                   <th className="py-2.5 px-3">Amount</th>
                   <th className="py-2.5 px-3">Payment</th>
@@ -464,11 +700,13 @@ export default function AdminDashboardPage() {
               <tbody className="divide-y divide-neutral-900">
                 {entries.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="py-8 text-center text-neutral-600">No records found</td>
+                    <td colSpan={10} className="py-12 text-center text-neutral-600">
+                      No records found matching current filters
+                    </td>
                   </tr>
                 ) : (
                   entries.map((e) => {
-                    const isPending = e.paymentStatus === "Pending";
+                    const isPending = e.paymentMode === "Pending" || e.paymentStatus === "Pending";
                     return (
                       <tr
                         key={e._id}
@@ -477,10 +715,15 @@ export default function AdminDashboardPage() {
                         }`}
                       >
                         <td className="py-3 px-3 text-neutral-400">
-                          {new Date(e.createdAt).toLocaleDateString("en-IN")}
+                          <div>{new Date(e.createdAt).toLocaleDateString("en-IN")}</div>
+                          <div className="text-[10px] text-neutral-600">{new Date(e.createdAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</div>
                         </td>
-                        <td className="py-3 px-3 text-white font-bold">{e.vehicleNumber}</td>
+                        <td className="py-3 px-3 text-white font-bold tracking-wide">{e.vehicleNumber}</td>
+                        <td className="py-3 px-3 text-neutral-300">
+                          {e.make || e.model ? `${e.make || ""} ${e.model || ""}`.trim() : "-"}
+                        </td>
                         <td className="py-3 px-3 text-neutral-400">{e.category}</td>
+                        <td className="py-3 px-3 text-neutral-300">{e.customerName || "-"}</td>
                         <td className="py-3 px-3 text-neutral-400">{e.customerPhone}</td>
                         <td className="py-3 px-3 text-white font-bold">₹{e.amount}</td>
                         <td className="py-3 px-3 text-neutral-400">{e.paymentMode}</td>
@@ -503,7 +746,7 @@ export default function AdminDashboardPage() {
                                 disabled={updatingId === e._id}
                                 onClick={() => handleUpdateStatus(e._id, "Paid", "Cash")}
                                 className="px-2 py-1 bg-amber-500 hover:bg-amber-400 text-black text-[10px] font-mono uppercase font-bold cursor-pointer"
-                                title="Mark as settled"
+                                title="Mark as settled (Cash)"
                               >
                                 {updatingId === e._id ? "..." : "Settle"}
                               </button>

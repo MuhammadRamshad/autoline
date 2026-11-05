@@ -12,13 +12,11 @@ export function exportToExcel(entries: any[], filename = "Autoline_CarWash_Repor
     "Make": e.make || "-",
     "Model": e.model || "-",
     "Category": e.category,
-    "Service": e.serviceType,
+    "Service": e.serviceType || "Full Wash",
     "Amount (INR)": e.amount,
     "Payment Mode": e.paymentMode,
-    "Payment Status": e.paymentStatus || "Paid",
-    "Status": e.status,
-    "RTO Office": e.parivahanDetails?.rtoOffice || "-",
-    "Fuel Type": e.parivahanDetails?.fuelType || "-",
+    "Payment Status": (e.paymentMode === "Pending" || e.paymentStatus === "Pending") ? "Pending" : "Paid",
+    "Notes": e.notes || "-",
   }));
 
   const worksheet = XLSX.utils.json_to_sheet(data);
@@ -51,27 +49,31 @@ export function exportToPDF(entries: any[], title = "Autoline Car Wash - Revenue
   const totalAmount = entries.reduce((acc, curr) => acc + (curr.amount || 0), 0);
   const upiTotal = entries.filter(e => e.paymentMode?.includes("UPI")).reduce((acc, curr) => acc + (curr.amount || 0), 0);
   const cashTotal = entries.filter(e => e.paymentMode === "Cash").reduce((acc, curr) => acc + (curr.amount || 0), 0);
-  const pendingTotal = entries.filter(e => e.paymentStatus === "Pending").reduce((acc, curr) => acc + (curr.amount || 0), 0);
+  const pendingTotal = entries.filter(e => e.paymentMode === "Pending" || e.paymentStatus === "Pending").reduce((acc, curr) => acc + (curr.amount || 0), 0);
 
   doc.setFontSize(10);
   doc.setTextColor(51, 65, 85);
-  doc.text(`Total Vehicles: ${entries.length}  |  Total: Rs. ${totalAmount.toLocaleString("en-IN")}  |  UPI: Rs. ${upiTotal.toLocaleString("en-IN")}  |  Cash: Rs. ${cashTotal.toLocaleString("en-IN")}  |  Pending: Rs. ${pendingTotal.toLocaleString("en-IN")}`, 14, 38);
+  doc.text(`Total Records: ${entries.length}  |  Total: Rs. ${totalAmount.toLocaleString("en-IN")}  |  UPI: Rs. ${upiTotal.toLocaleString("en-IN")}  |  Cash: Rs. ${cashTotal.toLocaleString("en-IN")}  |  Pending Dues: Rs. ${pendingTotal.toLocaleString("en-IN")}`, 14, 38);
 
-  const tableBody = entries.map((e, idx) => [
-    idx + 1,
-    new Date(e.createdAt).toLocaleDateString("en-IN") + " " + new Date(e.createdAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
-    e.vehicleNumber,
-    `${e.make || ""} ${e.model || ""}`.trim() || "-",
-    e.category,
-    e.customerPhone,
-    `Rs. ${e.amount}`,
-    e.paymentMode,
-    e.paymentStatus || "Paid"
-  ]);
+  const tableBody = entries.map((e, idx) => {
+    const isPending = e.paymentMode === "Pending" || e.paymentStatus === "Pending";
+    return [
+      idx + 1,
+      new Date(e.createdAt).toLocaleDateString("en-IN") + " " + new Date(e.createdAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
+      e.vehicleNumber,
+      `${e.make || ""} ${e.model || ""}`.trim() || "-",
+      e.category,
+      e.customerName || "-",
+      e.customerPhone,
+      `Rs. ${e.amount}`,
+      e.paymentMode,
+      isPending ? "PENDING" : "PAID"
+    ];
+  });
 
   autoTable(doc, {
     startY: 42,
-    head: [["#", "Date Time", "Vehicle No", "Vehicle", "Category", "Phone", "Amount", "Mode", "Payment Status"]],
+    head: [["#", "Date Time", "Vehicle No", "Vehicle", "Category", "Customer", "Phone", "Amount", "Mode", "Status"]],
     body: tableBody,
     theme: "striped",
     headStyles: {

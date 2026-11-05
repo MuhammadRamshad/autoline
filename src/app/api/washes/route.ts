@@ -6,16 +6,31 @@ export async function GET(request: Request) {
   try {
     await dbConnect();
     const { searchParams } = new URL(request.url);
-    const date = searchParams.get("date"); // YYYY-MM-DD
+    const date = searchParams.get("date"); // Legacy single date YYYY-MM-DD
+    const fromDate = searchParams.get("fromDate"); // YYYY-MM-DD
+    const toDate = searchParams.get("toDate"); // YYYY-MM-DD
     const search = searchParams.get("search");
     const category = searchParams.get("category");
     const paymentMode = searchParams.get("paymentMode");
     const paymentStatus = searchParams.get("paymentStatus");
-    const limit = parseInt(searchParams.get("limit") || "100", 10);
+    const limit = parseInt(searchParams.get("limit") || "500", 10);
 
     const query: any = {};
 
-    if (date) {
+    // Date range filtering (From Date - To Date) or single date
+    if (fromDate || toDate) {
+      query.createdAt = {};
+      if (fromDate) {
+        const start = new Date(fromDate);
+        start.setHours(0, 0, 0, 0);
+        query.createdAt.$gte = start;
+      }
+      if (toDate) {
+        const end = new Date(toDate);
+        end.setHours(23, 59, 59, 999);
+        query.createdAt.$lte = end;
+      }
+    } else if (date) {
       const startOfDay = new Date(date);
       startOfDay.setHours(0, 0, 0, 0);
       const endOfDay = new Date(date);
@@ -28,21 +43,40 @@ export async function GET(request: Request) {
     }
 
     if (paymentMode && paymentMode !== "All") {
-      query.paymentMode = paymentMode;
+      if (paymentMode === "Pending") {
+        query.$or = [{ paymentMode: "Pending" }, { paymentStatus: "Pending" }];
+      } else {
+        query.paymentMode = paymentMode;
+      }
     }
 
     if (paymentStatus && paymentStatus !== "All") {
-      query.paymentStatus = paymentStatus;
+      if (paymentStatus === "Pending") {
+        query.$or = [{ paymentMode: "Pending" }, { paymentStatus: "Pending" }];
+      } else if (paymentStatus === "Paid") {
+        query.paymentStatus = "Paid";
+        query.paymentMode = { $ne: "Pending" };
+      }
     }
 
-    if (search) {
-      query.$or = [
-        { vehicleNumber: { $regex: search, $options: "i" } },
-        { customerPhone: { $regex: search, $options: "i" } },
-        { customerName: { $regex: search, $options: "i" } },
-        { make: { $regex: search, $options: "i" } },
-        { model: { $regex: search, $options: "i" } },
+    if (search && search.trim()) {
+      const cleanSearch = search.trim();
+      const searchConditions = [
+        { vehicleNumber: { $regex: cleanSearch, $options: "i" } },
+        { customerPhone: { $regex: cleanSearch, $options: "i" } },
+        { customerName: { $regex: cleanSearch, $options: "i" } },
+        { make: { $regex: cleanSearch, $options: "i" } },
+        { model: { $regex: cleanSearch, $options: "i" } },
+        { notes: { $regex: cleanSearch, $options: "i" } },
       ];
+
+      if (query.$or) {
+        // If query already has an $or condition (e.g. from Pending), combine with $and
+        query.$and = [{ $or: query.$or }, { $or: searchConditions }];
+        delete query.$or;
+      } else {
+        query.$or = searchConditions;
+      }
     }
 
     const entries = await (WashEntry as any).find(query).sort({ createdAt: -1 }).limit(limit).lean();
@@ -54,6 +88,7 @@ export async function GET(request: Request) {
     const cashAmount = allMatches.filter((e: any) => e.paymentMode === "Cash").reduce((acc: number, curr: any) => acc + (curr.amount || 0), 0);
     const pendingAmount = allMatches.filter((e: any) => e.paymentMode === "Pending" || e.paymentStatus === "Pending").reduce((acc: number, curr: any) => acc + (curr.amount || 0), 0);
     const pendingCount = allMatches.filter((e: any) => e.paymentMode === "Pending" || e.paymentStatus === "Pending").length;
+    const paidCount = allMatches.length - pendingCount;
     const count = allMatches.length;
 
     return NextResponse.json({
@@ -65,6 +100,7 @@ export async function GET(request: Request) {
         cashAmount,
         pendingAmount,
         pendingCount,
+        paidCount,
         count
       }
     });
