@@ -163,15 +163,40 @@ export async function PATCH(request: Request) {
   try {
     await dbConnect();
     const body = await request.json();
-    const { id, paymentStatus, paymentMode } = body;
+    const {
+      id,
+      vehicleNumber,
+      customerName,
+      customerPhone,
+      make,
+      model,
+      category,
+      amount,
+      paymentMode,
+      paymentStatus,
+      notes,
+    } = body;
 
     if (!id) {
       return NextResponse.json({ success: false, error: "Entry ID is required" }, { status: 400 });
     }
 
     const updateData: any = {};
+    if (vehicleNumber !== undefined) updateData.vehicleNumber = vehicleNumber.toUpperCase().trim();
+    if (customerName !== undefined) updateData.customerName = customerName.trim();
+    if (customerPhone !== undefined) updateData.customerPhone = customerPhone.trim();
+    if (make !== undefined) updateData.make = make;
+    if (model !== undefined) updateData.model = model;
+    if (category !== undefined) updateData.category = category;
+    if (amount !== undefined) updateData.amount = Number(amount);
+    if (notes !== undefined) updateData.notes = notes;
     if (paymentStatus !== undefined) updateData.paymentStatus = paymentStatus;
-    if (paymentMode !== undefined) updateData.paymentMode = paymentMode;
+    if (paymentMode !== undefined) {
+      updateData.paymentMode = paymentMode;
+      if (paymentMode === "Pending" && paymentStatus === undefined) {
+        updateData.paymentStatus = "Pending";
+      }
+    }
 
     const updatedEntry = await (WashEntry as any).findByIdAndUpdate(
       id,

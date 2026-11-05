@@ -604,8 +604,8 @@ export default function AdminDashboardPage() {
                 className="w-full bg-black border border-neutral-800 text-xs font-mono text-neutral-200 px-2.5 py-2 focus:outline-none focus:border-white cursor-pointer"
               >
                 <option value="All">All Statuses</option>
-                <option value="Paid">✓ Paid Only</option>
-                <option value="Pending">⏳ Pending Dues Only</option>
+                <option value="Paid">Paid Only</option>
+                <option value="Pending">Pending Dues Only</option>
               </select>
             </div>
 
@@ -730,11 +730,11 @@ export default function AdminDashboardPage() {
                         <td className="py-3 px-3">
                           {isPending ? (
                             <span className="inline-flex items-center gap-1 text-[10px] uppercase font-bold bg-amber-500/20 text-amber-300 border border-amber-500/50 px-2 py-0.5 rounded">
-                              ⏳ Pending
+                              Pending
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 text-[10px] uppercase font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 px-2 py-0.5 rounded">
-                              ✓ Paid
+                              Paid
                             </span>
                           )}
                         </td>

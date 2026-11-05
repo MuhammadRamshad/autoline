@@ -2,7 +2,19 @@
 
 import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
-import { ChevronDown, CheckCircle2, AlertCircle, X } from "lucide-react";
+import { 
+  ChevronDown, 
+  CheckCircle2, 
+  AlertCircle, 
+  X, 
+  Clock, 
+  Check, 
+  Edit3, 
+  CheckSquare, 
+  Banknote, 
+  QrCode,
+  Save
+} from "lucide-react";
 import { INDIAN_VEHICLES_DATABASE, IndianVehicleModel } from "@/lib/vehicleDatabase";
 
 export default function ShopkeeperCounterPage() {
@@ -40,7 +52,10 @@ export default function ShopkeeperCounterPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [lastSubmittedEntry, setLastSubmittedEntry] = useState<any>(null);
   const [recentEntries, setRecentEntries] = useState<any[]>([]);
-  const [submitFeedback, setSubmitFeedback] = useState<string | null>(null);
+
+  // Edit Modal State for Shopkeeper
+  const [editingEntry, setEditingEntry] = useState<any | null>(null);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   useEffect(() => {
     fetchTariffs();
@@ -110,6 +125,69 @@ export default function ShopkeeperCounterPage() {
       showToast(err.message || "Error settling amount", "error");
     } finally {
       setUpdatingId(null);
+    }
+  };
+
+  const openEditModal = (entry: any) => {
+    setEditingEntry({
+      ...entry,
+      vehicleNumber: entry.vehicleNumber || "",
+      customerName: entry.customerName || "",
+      customerPhone: entry.customerPhone || "",
+      category: entry.category || "Hatchback (5 Seater)",
+      amount: entry.amount || 0,
+      paymentMode: entry.paymentMode || "UPI / QR",
+      paymentStatus: entry.paymentStatus || (entry.paymentMode === "Pending" ? "Pending" : "Paid"),
+      notes: entry.notes || "",
+    });
+  };
+
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingEntry) return;
+
+    if (!editingEntry.vehicleNumber.trim()) {
+      showToast("Vehicle number is required", "error");
+      return;
+    }
+    if (!editingEntry.customerPhone.trim()) {
+      showToast("Phone number is required", "error");
+      return;
+    }
+
+    setIsSavingEdit(true);
+    try {
+      const res = await fetch("/api/washes", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: editingEntry._id,
+          vehicleNumber: editingEntry.vehicleNumber.toUpperCase().trim(),
+          customerName: editingEntry.customerName,
+          customerPhone: editingEntry.customerPhone.trim(),
+          category: editingEntry.category,
+          amount: Number(editingEntry.amount),
+          paymentMode: editingEntry.paymentMode,
+          paymentStatus: editingEntry.paymentMode === "Pending" ? "Pending" : editingEntry.paymentStatus,
+          notes: editingEntry.notes,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast(`Updated ${data.entry.vehicleNumber}`, "success");
+        setEditingEntry(null);
+        fetchRecentEntries();
+        if (lastSubmittedEntry && lastSubmittedEntry._id === data.entry._id) {
+          setLastSubmittedEntry(data.entry);
+        }
+      } else {
+        showToast(data.error || "Failed to save changes", "error");
+      }
+    } catch (err: any) {
+      showToast(err.message || "Failed to update record", "error");
+    } finally {
+      setIsSavingEdit(false);
     }
   };
 
@@ -446,11 +524,11 @@ export default function ShopkeeperCounterPage() {
           {/* Right column: Recent Entries & Thermal Voucher */}
           <div className="md:col-span-5 space-y-6">
             
-            {/* Last entry voucher */}
+            {/* Last entry card */}
             {lastSubmittedEntry && (
               <div className="border border-neutral-700 p-5 bg-neutral-950 space-y-3">
                 <div className="flex items-center justify-between text-xs font-mono text-neutral-400 uppercase border-b border-neutral-850 pb-2">
-                  <span>Entry Saved</span>
+                  <span>Entry Recorded</span>
                   <span>{new Date(lastSubmittedEntry.createdAt).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</span>
                 </div>
                 <div>
@@ -462,44 +540,51 @@ export default function ShopkeeperCounterPage() {
                     ₹{lastSubmittedEntry.amount}{" "}
                     <span className="text-xs font-normal text-neutral-400 font-mono">({lastSubmittedEntry.paymentMode})</span>
                   </div>
-                  <span className={`text-[10px] font-mono uppercase px-2 py-0.5 font-bold ${
+                  <span className={`text-[10px] font-mono uppercase px-2 py-0.5 font-bold flex items-center gap-1 ${
                     lastSubmittedEntry.paymentStatus === "Pending"
                       ? "bg-amber-500/20 text-amber-400 border border-amber-500/50"
                       : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/50"
                   }`}>
-                    {lastSubmittedEntry.paymentStatus || "Paid"}
+                    {lastSubmittedEntry.paymentStatus === "Pending" ? <Clock className="h-3 w-3" /> : <Check className="h-3 w-3" />}
+                    <span>{lastSubmittedEntry.paymentStatus || "Paid"}</span>
                   </span>
                 </div>
                 <div className="text-xs text-neutral-400 font-mono">
                   Phone: {lastSubmittedEntry.customerPhone}
                 </div>
-                {lastSubmittedEntry.paymentStatus === "Pending" && (
-                  <div className="flex gap-2 pt-1">
-                    <button
-                      type="button"
-                      disabled={updatingId === lastSubmittedEntry._id}
-                      onClick={() => markAsSettled(lastSubmittedEntry._id, "Cash")}
-                      className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-mono uppercase font-bold transition-colors cursor-pointer"
-                    >
-                      {updatingId === lastSubmittedEntry._id ? "Updating..." : "✓ Settle as Cash"}
-                    </button>
-                    <button
-                      type="button"
-                      disabled={updatingId === lastSubmittedEntry._id}
-                      onClick={() => markAsSettled(lastSubmittedEntry._id, "UPI / QR")}
-                      className="flex-1 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-mono uppercase font-bold transition-colors cursor-pointer"
-                    >
-                      {updatingId === lastSubmittedEntry._id ? "Updating..." : "✓ Settle UPI"}
-                    </button>
-                  </div>
-                )}
-                <button
-                  type="button"
-                  onClick={() => window.print()}
-                  className="w-full py-2 bg-neutral-900 hover:bg-neutral-800 text-xs font-mono uppercase tracking-wider text-neutral-300 border border-neutral-700 cursor-pointer"
-                >
-                  Print Receipt
-                </button>
+                
+                <div className="flex gap-2 pt-1">
+                  {lastSubmittedEntry.paymentStatus === "Pending" && (
+                    <>
+                      <button
+                        type="button"
+                        disabled={updatingId === lastSubmittedEntry._id}
+                        onClick={() => markAsSettled(lastSubmittedEntry._id, "Cash")}
+                        className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-mono uppercase font-bold transition-colors cursor-pointer flex items-center justify-center gap-1"
+                      >
+                        <Banknote className="h-3.5 w-3.5" />
+                        <span>{updatingId === lastSubmittedEntry._id ? "Updating..." : "Settle Cash"}</span>
+                      </button>
+                      <button
+                        type="button"
+                        disabled={updatingId === lastSubmittedEntry._id}
+                        onClick={() => markAsSettled(lastSubmittedEntry._id, "UPI / QR")}
+                        className="flex-1 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-mono uppercase font-bold transition-colors cursor-pointer flex items-center justify-center gap-1"
+                      >
+                        <QrCode className="h-3.5 w-3.5" />
+                        <span>{updatingId === lastSubmittedEntry._id ? "Updating..." : "Settle UPI"}</span>
+                      </button>
+                    </>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => openEditModal(lastSubmittedEntry)}
+                    className="py-1.5 px-3 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 border border-neutral-700 text-[11px] font-mono uppercase cursor-pointer flex items-center gap-1"
+                  >
+                    <Edit3 className="h-3 w-3" />
+                    <span>Edit</span>
+                  </button>
+                </div>
               </div>
             )}
 
@@ -527,12 +612,14 @@ export default function ShopkeeperCounterPage() {
                             <div className="flex items-center gap-2">
                               <span className="font-mono font-bold text-white tracking-wide">{e.vehicleNumber}</span>
                               {isPending ? (
-                                <span className="text-[9px] font-mono uppercase bg-amber-500/20 text-amber-300 border border-amber-500/50 px-1.5 py-0.5 rounded font-bold animate-pulse">
-                                  ⏳ PENDING
+                                <span className="text-[9px] font-mono uppercase bg-amber-500/20 text-amber-300 border border-amber-500/50 px-1.5 py-0.5 rounded font-bold flex items-center gap-1">
+                                  <Clock className="h-2.5 w-2.5" />
+                                  <span>PENDING</span>
                                 </span>
                               ) : (
-                                <span className="text-[9px] font-mono uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 px-1.5 py-0.5 rounded">
-                                  PAID
+                                <span className="text-[9px] font-mono uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                                  <Check className="h-2.5 w-2.5" />
+                                  <span>PAID</span>
                                 </span>
                               )}
                             </div>
@@ -550,10 +637,18 @@ export default function ShopkeeperCounterPage() {
                           </div>
                         </div>
 
-                        {/* Settle button directly inside recent entries if pending */}
-                        {isPending && (
-                          <div className="mt-2 pt-2 border-t border-amber-900/30 flex items-center justify-between gap-2">
-                            <span className="text-[10px] font-mono text-amber-400/80">Settle Due:</span>
+                        {/* Actions directly inside recent entries */}
+                        <div className="mt-2 pt-2 border-t border-neutral-900/60 flex items-center justify-between gap-2">
+                          <button
+                            type="button"
+                            onClick={() => openEditModal(e)}
+                            className="text-[10px] font-mono text-neutral-400 hover:text-white cursor-pointer flex items-center gap-1"
+                          >
+                            <Edit3 className="h-3 w-3" />
+                            <span>Edit Entry</span>
+                          </button>
+
+                          {isPending && (
                             <div className="flex gap-1.5">
                               <button
                                 type="button"
@@ -572,8 +667,8 @@ export default function ShopkeeperCounterPage() {
                                 UPI
                               </button>
                             </div>
-                          </div>
-                        )}
+                          )}
+                        </div>
                       </div>
                     );
                   })
@@ -584,6 +679,161 @@ export default function ShopkeeperCounterPage() {
           </div>
 
         </div>
+
+        {/* Edit Entry Modal for Shopkeeper */}
+        {editingEntry && (
+          <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-neutral-950 border border-neutral-800 w-full max-w-lg p-6 space-y-5 shadow-2xl">
+              <div className="flex items-center justify-between border-b border-neutral-900 pb-3">
+                <div className="flex items-center gap-2">
+                  <Edit3 className="h-4 w-4 text-sky-400" />
+                  <h3 className="font-mono text-sm uppercase font-bold text-white">Edit Wash Entry</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditingEntry(null)}
+                  className="text-neutral-500 hover:text-white cursor-pointer"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveEdit} className="space-y-4 text-xs font-mono">
+                <div>
+                  <label className="block uppercase text-neutral-400 mb-1">Vehicle Number *</label>
+                  <input
+                    type="text"
+                    required
+                    value={editingEntry.vehicleNumber}
+                    onChange={(e) => setEditingEntry({ ...editingEntry, vehicleNumber: e.target.value.toUpperCase() })}
+                    className="w-full bg-black border border-neutral-800 px-3 py-2 text-white font-mono uppercase text-sm focus:outline-none focus:border-white"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block uppercase text-neutral-400 mb-1">Customer Phone *</label>
+                    <input
+                      type="tel"
+                      required
+                      value={editingEntry.customerPhone}
+                      onChange={(e) => setEditingEntry({ ...editingEntry, customerPhone: e.target.value })}
+                      className="w-full bg-black border border-neutral-800 px-3 py-2 text-white font-mono focus:outline-none focus:border-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block uppercase text-neutral-400 mb-1">Customer Name</label>
+                    <input
+                      type="text"
+                      value={editingEntry.customerName}
+                      onChange={(e) => setEditingEntry({ ...editingEntry, customerName: e.target.value })}
+                      className="w-full bg-black border border-neutral-800 px-3 py-2 text-white font-mono focus:outline-none focus:border-white"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block uppercase text-neutral-400 mb-1">Category</label>
+                    <select
+                      value={editingEntry.category}
+                      onChange={(e) => {
+                        const newCat = e.target.value;
+                        const match = pricesList.find((p) => p.category === newCat);
+                        setEditingEntry({
+                          ...editingEntry,
+                          category: newCat,
+                          amount: match?.price !== undefined ? match.price : editingEntry.amount,
+                        });
+                      }}
+                      className="w-full bg-black border border-neutral-800 px-2.5 py-2 text-white font-mono focus:outline-none focus:border-white"
+                    >
+                      {pricesList.map((p) => (
+                        <option key={p.category} value={p.category}>
+                          {p.category}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block uppercase text-neutral-400 mb-1">Amount (₹)</label>
+                    <input
+                      type="number"
+                      required
+                      value={editingEntry.amount}
+                      onChange={(e) => setEditingEntry({ ...editingEntry, amount: Number(e.target.value) })}
+                      className="w-full bg-black border border-neutral-800 px-3 py-2 text-white font-mono font-bold focus:outline-none focus:border-white"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block uppercase text-neutral-400 mb-1">Payment Mode</label>
+                    <select
+                      value={editingEntry.paymentMode}
+                      onChange={(e) => {
+                        const mode = e.target.value;
+                        setEditingEntry({
+                          ...editingEntry,
+                          paymentMode: mode,
+                          paymentStatus: mode === "Pending" ? "Pending" : "Paid",
+                        });
+                      }}
+                      className="w-full bg-black border border-neutral-800 px-2.5 py-2 text-white font-mono focus:outline-none focus:border-white"
+                    >
+                      <option value="UPI / QR">UPI / QR</option>
+                      <option value="Cash">Cash</option>
+                      <option value="Pending">Pending</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block uppercase text-neutral-400 mb-1">Payment Status</label>
+                    <select
+                      value={editingEntry.paymentStatus}
+                      onChange={(e) => setEditingEntry({ ...editingEntry, paymentStatus: e.target.value })}
+                      className="w-full bg-black border border-neutral-800 px-2.5 py-2 text-white font-mono focus:outline-none focus:border-white"
+                    >
+                      <option value="Paid">Paid</option>
+                      <option value="Pending">Pending</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block uppercase text-neutral-400 mb-1">Notes</label>
+                  <input
+                    type="text"
+                    placeholder="Optional note"
+                    value={editingEntry.notes || ""}
+                    onChange={(e) => setEditingEntry({ ...editingEntry, notes: e.target.value })}
+                    className="w-full bg-black border border-neutral-800 px-3 py-2 text-white font-mono focus:outline-none focus:border-white"
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-3 border-t border-neutral-900">
+                  <button
+                    type="button"
+                    onClick={() => setEditingEntry(null)}
+                    className="px-4 py-2 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 font-mono text-xs uppercase cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSavingEdit}
+                    className="px-5 py-2 bg-white hover:bg-neutral-200 text-black font-mono font-bold text-xs uppercase cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Save className="h-3.5 w-3.5" />
+                    <span>{isSavingEdit ? "Saving..." : "Save Changes"}</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
 
       </main>
     </div>
