@@ -177,6 +177,42 @@ export default function AdminDashboardPage() {
     return parts.join(" • ");
   };
 
+  const [generatingTodayReport, setGeneratingTodayReport] = useState(false);
+
+  // Today's dedicated instant report generator
+  const handleGenerateTodayReport = async () => {
+    try {
+      setGeneratingTodayReport(true);
+      const today = new Date();
+      const pad = (n: number) => n.toString().padStart(2, "0");
+      const todayStr = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+
+      // Fetch all entries for today
+      const res = await fetch(`/api/washes?fromDate=${todayStr}&toDate=${todayStr}&limit=1000&_t=${Date.now()}`);
+      const data = await res.json();
+      const todayEntries = (data.success && data.entries) ? data.entries : [];
+
+      const humanDate = today.toLocaleDateString("en-IN", {
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+        year: "numeric"
+      });
+
+      if (todayEntries.length === 0) {
+        alert(`No entries found for today (${humanDate})`);
+        return;
+      }
+
+      exportToPDF(todayEntries, "Autoline Wash Report", `Daily Report: ${humanDate} • Total ${todayEntries.length} entries`);
+    } catch (err: any) {
+      console.error(err);
+      alert("Failed to generate today's report");
+    } finally {
+      setGeneratingTodayReport(false);
+    }
+  };
+
   const handleExportExcel = () => {
     const filename = `Autoline_Report_${fromDate || "Start"}_to_${toDate || "End"}.xlsx`;
     exportToExcel(entries, filename);
@@ -313,24 +349,15 @@ export default function AdminDashboardPage() {
               <span className="hidden sm:inline">Refresh</span>
             </button>
 
+            {/* Click generates Today's Report */}
             <button
-              onClick={handleExportExcel}
-              disabled={entries.length === 0}
-              className="px-4 py-2 bg-neutral-900 hover:bg-neutral-800 text-xs font-mono uppercase tracking-wider text-neutral-300 border border-neutral-800 disabled:opacity-40 cursor-pointer flex items-center gap-1.5"
-              title="Export filtered records to Excel"
+              onClick={handleGenerateTodayReport}
+              disabled={generatingTodayReport}
+              className="px-4 py-2 bg-white text-black text-xs font-mono uppercase tracking-wider font-semibold hover:bg-neutral-200 disabled:opacity-40 cursor-pointer flex items-center gap-1.5 shadow-sm"
+              title="Click to generate today's wash report (PDF)"
             >
-              <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-400" />
-              <span>Excel ({entries.length})</span>
-            </button>
-
-            <button
-              onClick={handleExportPDF}
-              disabled={entries.length === 0}
-              className="px-4 py-2 bg-white text-black text-xs font-mono uppercase tracking-wider font-semibold hover:bg-neutral-200 disabled:opacity-40 cursor-pointer flex items-center gap-1.5"
-              title="Export filtered report to PDF"
-            >
-              <FileText className="h-3.5 w-3.5" />
-              <span>PDF Report</span>
+              <FileText className={`h-3.5 w-3.5 ${generatingTodayReport ? "animate-pulse" : ""}`} />
+              <span>{generatingTodayReport ? "Generating..." : "Today Report"}</span>
             </button>
           </div>
         </div>
@@ -760,6 +787,37 @@ export default function AdminDashboardPage() {
               </button>
             </div>
           )}
+
+          {/* Filtered Report Export Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-neutral-950 border border-neutral-900 rounded">
+            <div className="text-xs font-mono text-neutral-400">
+              <span className="text-neutral-500 uppercase tracking-wider text-[10px] block sm:inline mr-2">Filtered Report:</span>
+              <span>{entries.length} entry{entries.length === 1 ? "" : "s"} selected</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleExportExcel}
+                disabled={entries.length === 0}
+                className="px-3.5 py-1.5 bg-neutral-900 hover:bg-neutral-800 text-xs font-mono uppercase tracking-wider text-neutral-300 border border-neutral-800 disabled:opacity-40 cursor-pointer flex items-center gap-1.5"
+                title="Export filtered entries to Excel spreadsheet"
+              >
+                <FileSpreadsheet className="h-3.5 w-3.5 text-emerald-400" />
+                <span>Export Excel</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleExportPDF}
+                disabled={entries.length === 0}
+                className="px-3.5 py-1.5 bg-white hover:bg-neutral-200 text-black text-xs font-mono uppercase tracking-wider font-bold disabled:opacity-40 cursor-pointer flex items-center gap-1.5"
+                title="Export filtered entries to PDF document"
+              >
+                <FileText className="h-3.5 w-3.5" />
+                <span>Export Filtered PDF</span>
+              </button>
+            </div>
+          </div>
 
           {/* Table */}
           <div className="overflow-x-auto">
