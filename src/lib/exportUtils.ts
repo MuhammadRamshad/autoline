@@ -3,7 +3,12 @@ import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 
 export function exportToExcel(entries: any[], filename = "Autoline_CarWash_Report.xlsx") {
-  const data = entries.map((e, idx) => ({
+  const totalAmount = entries.reduce((acc, curr) => acc + (curr.amount || 0), 0);
+  const upiTotal = entries.filter(e => e.paymentMode?.includes("UPI")).reduce((acc, curr) => acc + (curr.amount || 0), 0);
+  const cashTotal = entries.filter(e => e.paymentMode === "Cash").reduce((acc, curr) => acc + (curr.amount || 0), 0);
+  const pendingTotal = entries.filter(e => e.paymentMode === "Pending" || e.paymentStatus === "Pending").reduce((acc, curr) => acc + (curr.amount || 0), 0);
+
+  const data: any[] = entries.map((e, idx) => ({
     "S.No": idx + 1,
     "Date & Time": new Date(e.createdAt).toLocaleString("en-IN"),
     "Vehicle No": e.vehicleNumber,
@@ -18,6 +23,23 @@ export function exportToExcel(entries: any[], filename = "Autoline_CarWash_Repor
     "Payment Status": (e.paymentMode === "Pending" || e.paymentStatus === "Pending") ? "Pending" : "Paid",
     "Notes": e.notes || "-",
   }));
+
+  // Append Grand Total Row at bottom
+  data.push({
+    "S.No": "TOTAL",
+    "Date & Time": `Total Count: ${entries.length}`,
+    "Vehicle No": "",
+    "Customer Phone": "",
+    "Customer Name": "",
+    "Make": "",
+    "Model": "",
+    "Category": "",
+    "Service": "GRAND TOTAL",
+    "Amount (INR)": totalAmount,
+    "Payment Mode": `Cash: ${cashTotal} | UPI: ${upiTotal}`,
+    "Payment Status": `Pending: ${pendingTotal}`,
+    "Notes": `Paid: ${totalAmount - pendingTotal}`,
+  });
 
   const worksheet = XLSX.utils.json_to_sheet(data);
   const workbook = XLSX.utils.book_new();
@@ -71,18 +93,41 @@ export function exportToPDF(entries: any[], title = "Autoline Car Wash - Revenue
     ];
   });
 
+  // Dedicated Grand Total Footer Row
+  const tableFoot = [
+    [
+      "TOTAL",
+      `${entries.length} vehicles`,
+      "",
+      "",
+      "",
+      "",
+      "GRAND TOTAL",
+      `Rs. ${totalAmount.toLocaleString("en-IN")}`,
+      `Cash: ${cashTotal} | UPI: ${upiTotal}`,
+      `Due: Rs. ${pendingTotal.toLocaleString("en-IN")}`
+    ]
+  ];
+
   autoTable(doc, {
     startY: 42,
     head: [["#", "Date Time", "Vehicle No", "Vehicle", "Category", "Customer", "Phone", "Amount", "Mode", "Status"]],
     body: tableBody,
+    foot: tableFoot,
     theme: "striped",
     headStyles: {
       fillColor: [30, 58, 138], // Indigo 900
       textColor: 255,
       fontStyle: "bold"
     },
+    footStyles: {
+      fillColor: [15, 23, 42], // Slate 900
+      textColor: [255, 255, 255],
+      fontStyle: "bold",
+      fontSize: 9
+    },
     styles: {
-      fontSize: 9,
+      fontSize: 8.5,
       cellPadding: 3,
     },
     alternateRowStyles: {

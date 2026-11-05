@@ -127,6 +127,26 @@ export default function ShopkeeperCounterPage() {
     fetchTariffs();
     fetchRecentEntries();
     fetchRecentExpenses();
+
+    // Auto-sync polling every 4 seconds to instantly reflect Admin price changes or status updates
+    const interval = setInterval(() => {
+      fetchTariffs();
+      fetchRecentEntries();
+      fetchRecentExpenses();
+    }, 4000);
+
+    // Sync immediately when user switches back to this tab / window
+    const handleFocus = () => {
+      fetchTariffs();
+      fetchRecentEntries();
+      fetchRecentExpenses();
+    };
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", handleFocus);
+    };
   }, []);
 
   const fetchTariffs = async () => {

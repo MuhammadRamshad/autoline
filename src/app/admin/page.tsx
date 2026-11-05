@@ -53,9 +53,9 @@ export default function AdminDashboardPage() {
   const [newCatName, setNewCatName] = useState("");
   const [newPrice, setNewPrice] = useState(400);
 
-  const fetchData = async () => {
+  const fetchData = async (isBackground: boolean = false) => {
     try {
-      setRefreshing(true);
+      if (!isBackground) setRefreshing(true);
       const priceRes = await fetch("/api/prices");
       const priceData = await priceRes.json();
       if (priceData.success) {
@@ -91,13 +91,30 @@ export default function AdminDashboardPage() {
     } catch (err) {
       console.error(err);
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (!isBackground) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   };
 
   useEffect(() => {
     fetchData();
+
+    // Auto-sync polling every 4 seconds to reflect shopkeeper entries, expenses, or settlements in real time
+    const interval = setInterval(() => {
+      fetchData(true);
+    }, 4000);
+
+    const handleFocus = () => {
+      fetchData(true);
+    };
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", handleFocus);
+    };
   }, [fromDate, toDate, selectedCategory, selectedPaymentMode, selectedStatus]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
