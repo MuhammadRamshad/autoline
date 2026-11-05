@@ -174,10 +174,62 @@ export const INDIAN_VEHICLES_DATABASE: IndianVehicleModel[] = [
   { make: "Volvo", model: "XC40 / XC60 / XC90", category: "Luxury / Large Vehicle", defaultWashPrice: 900 },
   { make: "Jeep", model: "Compass / Meridian / Wrangler", category: "Luxury / Large Vehicle", defaultWashPrice: 750 },
 
-  // --- Commercial / Others ---
-  { make: "Bajaj", model: "Compact Auto Rickshaw (3-Wheeler)", category: "Auto / Commercial", defaultWashPrice: 200 },
-  { make: "Piaggio", model: "Ape Auto / Cargo", category: "Auto / Commercial", defaultWashPrice: 220 },
-  { make: "Tata", model: "Ace Gold / Super Ace (Chota Hathi)", category: "Auto / Commercial", defaultWashPrice: 400 },
+  // --- Auto, 3-Wheeler & Commercial Light Vehicles ---
+  // Autos / 3-Wheelers (Passenger & Cargo)
+  { make: "Bajaj", model: "RE Compact Auto Rickshaw", category: "Auto / Commercial", defaultWashPrice: 200 },
+  { make: "Bajaj", model: "RE Maxima Auto (Passenger)", category: "Auto / Commercial", defaultWashPrice: 220 },
+  { make: "Bajaj", model: "Maxima Cargo / Delivery", category: "Auto / Commercial", defaultWashPrice: 250 },
+  { make: "Bajaj", model: "Maxima Z", category: "Auto / Commercial", defaultWashPrice: 220 },
+  { make: "Bajaj", model: "Qute (Quadricycle)", category: "Auto / Commercial", defaultWashPrice: 250 },
+
+  { make: "Piaggio", model: "Ape City / City Plus (Auto Rickshaw)", category: "Auto / Commercial", defaultWashPrice: 200 },
+  { make: "Piaggio", model: "Ape DX / Ape Auto", category: "Auto / Commercial", defaultWashPrice: 220 },
+  { make: "Piaggio", model: "Ape Xtra LDX (Cargo / Goods)", category: "Auto / Commercial", defaultWashPrice: 250 },
+  { make: "Piaggio", model: "Ape E-City / E-Xtra EV", category: "Auto / Commercial", defaultWashPrice: 220 },
+
+  { make: "Mahindra", model: "Alfa Passenger Auto", category: "Auto / Commercial", defaultWashPrice: 200 },
+  { make: "Mahindra", model: "Alfa Plus Cargo Auto", category: "Auto / Commercial", defaultWashPrice: 250 },
+  { make: "Mahindra", model: "Treo Auto Rickshaw (Electric EV)", category: "Auto / Commercial", defaultWashPrice: 200 },
+  { make: "Mahindra", model: "Treo Zor (Electric Cargo)", category: "Auto / Commercial", defaultWashPrice: 250 },
+  { make: "Mahindra", model: "Zor Grand EV", category: "Auto / Commercial", defaultWashPrice: 250 },
+
+  { make: "TVS", model: "King Deluxe Auto Rickshaw", category: "Auto / Commercial", defaultWashPrice: 200 },
+  { make: "TVS", model: "King Duramax (Passenger)", category: "Auto / Commercial", defaultWashPrice: 220 },
+  { make: "TVS", model: "King Kargo (Goods 3-Wheeler)", category: "Auto / Commercial", defaultWashPrice: 250 },
+
+  { make: "Atul", model: "Gem Paxx Auto Rickshaw", category: "Auto / Commercial", defaultWashPrice: 200 },
+  { make: "Atul", model: "Gem Cargo / Shakti", category: "Auto / Commercial", defaultWashPrice: 250 },
+  { make: "Atul", model: "Rik Passenger Auto", category: "Auto / Commercial", defaultWashPrice: 200 },
+
+  // Mini Trucks, Small Commercial & 4-Wheeler Tempos
+  { make: "Mahindra", model: "Jeeto (Jeeto Plus / Strong / S6 16)", category: "Auto / Commercial", defaultWashPrice: 350 },
+  { make: "Mahindra", model: "Supro Profit Truck Mini / Maxi", category: "Auto / Commercial", defaultWashPrice: 400 },
+  { make: "Mahindra", model: "Supro Van (Passenger)", category: "Auto / Commercial", defaultWashPrice: 420 },
   { make: "Mahindra", model: "Bolero Maxi Truck / Camper", category: "Auto / Commercial", defaultWashPrice: 500 },
-  { make: "Maruti Suzuki", model: "Eeco (Passenger/Cargo)", category: "Auto / Commercial", defaultWashPrice: 420 },
+  { make: "Mahindra", model: "Bolero Pik-Up (1.3T / 1.7T / Extra Long)", category: "Auto / Commercial", defaultWashPrice: 550 },
+  { make: "Mahindra", model: "Maxx City Pikup / HD", category: "Auto / Commercial", defaultWashPrice: 550 },
+
+  { make: "Tata", model: "Magic Iris (Passenger Mini Van)", category: "Auto / Commercial", defaultWashPrice: 320 },
+  { make: "Tata", model: "Magic Gold / Magic Express", category: "Auto / Commercial", defaultWashPrice: 420 },
+  { make: "Tata", model: "Magic Mantra", category: "Auto / Commercial", defaultWashPrice: 420 },
+  { make: "Tata", model: "Ace (Chota Hathi)", category: "Auto / Commercial", defaultWashPrice: 380 },
+  { make: "Tata", model: "Ace Gold (Petrol / Diesel / CNG)", category: "Auto / Commercial", defaultWashPrice: 380 },
+  { make: "Tata", model: "Ace EV", category: "Auto / Commercial", defaultWashPrice: 380 },
+  { make: "Tata", model: "Ace Zip", category: "Auto / Commercial", defaultWashPrice: 350 },
+  { make: "Tata", model: "Intra V10 / V20 / V30 / V50", category: "Auto / Commercial", defaultWashPrice: 450 },
+  { make: "Tata", model: "Yodha Pickup (1200 / 1700)", category: "Auto / Commercial", defaultWashPrice: 550 },
+
+  { make: "Maruti Suzuki", model: "Super Carry (Mini Truck)", category: "Auto / Commercial", defaultWashPrice: 380 },
+  { make: "Maruti Suzuki", model: "Eeco (Passenger / Cargo)", category: "Auto / Commercial", defaultWashPrice: 420 },
+
+  { make: "Ashok Leyland", model: "Dost+ / Dost Strong", category: "Auto / Commercial", defaultWashPrice: 480 },
+  { make: "Ashok Leyland", model: "Bada Dost (i2 / i3 / i4)", category: "Auto / Commercial", defaultWashPrice: 520 },
+  { make: "Ashok Leyland", model: "Bada Dost EV", category: "Auto / Commercial", defaultWashPrice: 520 },
+
+  { make: "Force Motors", model: "Trax Cruiser / Toofan", category: "Auto / Commercial", defaultWashPrice: 650 },
+  { make: "Force Motors", model: "Urbania (Van / Tempo)", category: "Auto / Commercial", defaultWashPrice: 850 },
+  { make: "Force Motors", model: "Traveller 3050 / 3350 / 4020", category: "Auto / Commercial", defaultWashPrice: 900 },
+
+  { make: "Isuzu", model: "D-Max / V-Cross", category: "Auto / Commercial", defaultWashPrice: 650 },
+  { make: "Isuzu", model: "S-Cab Commercial Pickup", category: "Auto / Commercial", defaultWashPrice: 600 },
 ];
