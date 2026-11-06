@@ -221,15 +221,20 @@ export default function AllEntriesPage() {
     setIsSavingEdit(true);
     try {
       if (editingEntry.type === "wash") {
-        if (!editingEntry.vehicleNumber?.trim()) {
-          showToast("Vehicle number is required", "error");
+        if (editingEntry.amount === undefined || editingEntry.amount === null || isNaN(Number(editingEntry.amount)) || Number(editingEntry.amount) < 0) {
+          showToast("Valid amount is required", "error");
           setIsSavingEdit(false);
           return;
         }
-        if (!editingEntry.customerPhone?.trim()) {
-          showToast("Phone number is required", "error");
-          setIsSavingEdit(false);
-          return;
+
+        const trimmedPhone = (editingEntry.customerPhone || "").toString().trim();
+        if (trimmedPhone) {
+          const digitsOnly = trimmedPhone.replace(/\D/g, "");
+          if (digitsOnly.length !== 10) {
+            showToast("Phone number must be exactly 10 digits", "error");
+            setIsSavingEdit(false);
+            return;
+          }
         }
 
         const res = await fetch("/api/washes", {
@@ -237,9 +242,9 @@ export default function AllEntriesPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             id: editingEntry._id,
-            vehicleNumber: editingEntry.vehicleNumber.toUpperCase().trim(),
+            vehicleNumber: (editingEntry.vehicleNumber || "").toUpperCase().trim(),
             customerName: editingEntry.customerName || "",
-            customerPhone: editingEntry.customerPhone.trim(),
+            customerPhone: trimmedPhone,
             category: editingEntry.category,
             amount: Number(editingEntry.amount),
             paymentMode: editingEntry.paymentMode,
@@ -802,10 +807,10 @@ export default function AllEntriesPage() {
               {editingEntry.type === "wash" ? (
                 <>
                   <div>
-                    <label className="block uppercase text-neutral-400 mb-1">Vehicle Number *</label>
+                    <label className="block uppercase text-neutral-400 mb-1">Vehicle Number</label>
                     <input
                       type="text"
-                      required
+                      placeholder="Optional"
                       value={editingEntry.vehicleNumber || ""}
                       onChange={(e) => setEditingEntry({ ...editingEntry, vehicleNumber: e.target.value.toUpperCase() })}
                       className="w-full bg-black border border-neutral-800 px-3 py-2 text-white font-mono uppercase text-sm focus:outline-none focus:border-white rounded"
@@ -814,12 +819,16 @@ export default function AllEntriesPage() {
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block uppercase text-neutral-400 mb-1">Customer Phone *</label>
+                      <label className="block uppercase text-neutral-400 mb-1">Customer Phone</label>
                       <input
                         type="tel"
-                        required
+                        maxLength={10}
+                        placeholder="10 Digits (Optional)"
                         value={editingEntry.customerPhone || ""}
-                        onChange={(e) => setEditingEntry({ ...editingEntry, customerPhone: e.target.value })}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/\D/g, "").slice(0, 10);
+                          setEditingEntry({ ...editingEntry, customerPhone: val });
+                        }}
                         className="w-full bg-black border border-neutral-800 px-3 py-2 text-white font-mono focus:outline-none focus:border-white rounded"
                       />
                     </div>

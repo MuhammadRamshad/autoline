@@ -240,13 +240,18 @@ export default function ShopkeeperCounterPage() {
     e.preventDefault();
     if (!editingEntry) return;
 
-    if (!editingEntry.vehicleNumber.trim()) {
-      showToast("Vehicle number is required", "error");
+    if (editingEntry.amount === undefined || editingEntry.amount === null || isNaN(Number(editingEntry.amount)) || Number(editingEntry.amount) < 0) {
+      showToast("Valid amount is required", "error");
       return;
     }
-    if (!editingEntry.customerPhone.trim()) {
-      showToast("Phone number is required", "error");
-      return;
+
+    const trimmedPhone = (editingEntry.customerPhone || "").toString().trim();
+    if (trimmedPhone) {
+      const digitsOnly = trimmedPhone.replace(/\D/g, "");
+      if (digitsOnly.length !== 10) {
+        showToast("Phone number must be exactly 10 digits", "error");
+        return;
+      }
     }
 
     setIsSavingEdit(true);
@@ -256,20 +261,20 @@ export default function ShopkeeperCounterPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           id: editingEntry._id,
-          vehicleNumber: editingEntry.vehicleNumber.toUpperCase().trim(),
-          customerName: editingEntry.customerName,
-          customerPhone: editingEntry.customerPhone.trim(),
+          vehicleNumber: (editingEntry.vehicleNumber || "").toUpperCase().trim(),
+          customerName: editingEntry.customerName || "",
+          customerPhone: trimmedPhone,
           category: editingEntry.category,
           amount: Number(editingEntry.amount),
           paymentMode: editingEntry.paymentMode,
           paymentStatus: editingEntry.paymentMode === "Pending" ? "Pending" : editingEntry.paymentStatus,
-          notes: editingEntry.notes,
+          notes: editingEntry.notes || "",
         }),
       });
 
       const data = await res.json();
       if (res.ok && data.success) {
-        showToast(`Updated ${data.entry.vehicleNumber}`, "success");
+        showToast(`Updated entry successfully`, "success");
         setEditingEntry(null);
         fetchRecentEntries();
         if (lastSubmittedEntry && lastSubmittedEntry._id === data.entry._id) {
@@ -319,13 +324,18 @@ export default function ShopkeeperCounterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!vehicleNumber.trim()) {
-      showToast("Please enter a vehicle number", "error");
+    if (amount === undefined || amount === null || isNaN(Number(amount)) || Number(amount) < 0) {
+      showToast("Please enter a valid amount", "error");
       return;
     }
-    if (!customerPhone.trim()) {
-      showToast("Please enter customer phone number", "error");
-      return;
+
+    const trimmedPhone = (customerPhone || "").toString().trim();
+    if (trimmedPhone) {
+      const digitsOnly = trimmedPhone.replace(/\D/g, "");
+      if (digitsOnly.length !== 10) {
+        showToast("Phone number must be exactly 10 digits", "error");
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -335,9 +345,9 @@ export default function ShopkeeperCounterPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          vehicleNumber: vehicleNumber.toUpperCase().trim(),
-          customerName,
-          customerPhone: customerPhone.trim(),
+          vehicleNumber: vehicleNumber ? vehicleNumber.toUpperCase().trim() : "",
+          customerName: customerName.trim(),
+          customerPhone: trimmedPhone,
           make: selectedMake,
           model: selectedModel,
           category: selectedCategory,
@@ -345,7 +355,7 @@ export default function ShopkeeperCounterPage() {
           amount: Number(amount),
           paymentMode,
           paymentStatus: isPending ? "Pending" : "Paid",
-          notes,
+          notes: notes.trim(),
           status: "Completed"
         })
       });
@@ -354,7 +364,7 @@ export default function ShopkeeperCounterPage() {
       if (res.ok && data.success) {
         setLastSubmittedEntry(data.entry);
         showToast(
-          `Recorded ${data.entry.vehicleNumber} (₹${data.entry.amount} • ${data.entry.paymentMode})`,
+          `Recorded ${data.entry.vehicleNumber || "Vehicle"} (₹${data.entry.amount} • ${data.entry.paymentMode})`,
           "success"
         );
         setVehicleNumber("");
@@ -421,12 +431,11 @@ export default function ShopkeeperCounterPage() {
               {/* Registration */}
               <div>
                 <label className="block text-xs uppercase font-mono tracking-wider text-neutral-400 mb-2">
-                  Vehicle Number *
+                  Vehicle Number
                 </label>
                 <input
                   type="text"
-                  required
-                  placeholder="e.g. MH12AB1234"
+                  placeholder="e.g. MH12AB1234 (Optional)"
                   value={vehicleNumber}
                   onChange={(e) => setVehicleNumber(e.target.value.toUpperCase())}
                   className="w-full bg-black border border-neutral-800 px-4 py-3 text-lg font-mono tracking-widest text-white uppercase placeholder:text-neutral-700 focus:outline-none focus:border-white transition-colors"
@@ -507,16 +516,24 @@ export default function ShopkeeperCounterPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs uppercase font-mono tracking-wider text-neutral-400 mb-2">
-                    Phone Number *
+                    Phone Number
                   </label>
                   <input
                     type="tel"
-                    required
-                    placeholder="9876543210"
+                    maxLength={10}
+                    placeholder="10 Digits (Optional)"
                     value={customerPhone}
-                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, "").slice(0, 10);
+                      setCustomerPhone(val);
+                    }}
                     className="w-full bg-black border border-neutral-800 px-3 py-2.5 text-xs font-mono text-white placeholder:text-neutral-700 focus:outline-none focus:border-white"
                   />
+                  {customerPhone && customerPhone.length !== 10 && (
+                    <span className="text-[10px] text-amber-400 font-mono mt-1 block">
+                      Must be exactly 10 digits ({customerPhone.length}/10)
+                    </span>
+                  )}
                 </div>
 
                 <div>
@@ -537,7 +554,7 @@ export default function ShopkeeperCounterPage() {
               <div className="border border-neutral-800 p-4 bg-neutral-950 space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-xs uppercase font-mono tracking-wider text-neutral-400 block">Total Amount</span>
+                    <span className="text-xs uppercase font-mono tracking-wider text-neutral-400 block">Total Amount *</span>
                     <span className="text-[10px] text-neutral-500 font-mono">Auto-filled from category rate • Editable</span>
                   </div>
                   <div className="flex items-baseline gap-1">
@@ -828,10 +845,10 @@ export default function ShopkeeperCounterPage() {
 
               <form onSubmit={handleSaveEdit} className="space-y-4 text-xs font-mono">
                 <div>
-                  <label className="block uppercase text-neutral-400 mb-1">Vehicle Number *</label>
+                  <label className="block uppercase text-neutral-400 mb-1">Vehicle Number</label>
                   <input
                     type="text"
-                    required
+                    placeholder="Optional"
                     value={editingEntry.vehicleNumber}
                     onChange={(e) => setEditingEntry({ ...editingEntry, vehicleNumber: e.target.value.toUpperCase() })}
                     className="w-full bg-black border border-neutral-800 px-3 py-2 text-white font-mono uppercase text-sm focus:outline-none focus:border-white"
@@ -840,12 +857,16 @@ export default function ShopkeeperCounterPage() {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block uppercase text-neutral-400 mb-1">Customer Phone *</label>
+                    <label className="block uppercase text-neutral-400 mb-1">Customer Phone</label>
                     <input
                       type="tel"
-                      required
+                      maxLength={10}
+                      placeholder="10 Digits (Optional)"
                       value={editingEntry.customerPhone}
-                      onChange={(e) => setEditingEntry({ ...editingEntry, customerPhone: e.target.value })}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, "").slice(0, 10);
+                        setEditingEntry({ ...editingEntry, customerPhone: val });
+                      }}
                       className="w-full bg-black border border-neutral-800 px-3 py-2 text-white font-mono focus:outline-none focus:border-white"
                     />
                   </div>

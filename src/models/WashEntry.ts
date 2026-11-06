@@ -1,13 +1,13 @@
 import mongoose, { Schema, Model } from "mongoose";
 
 export interface IWashEntry {
-  vehicleNumber: string;
+  vehicleNumber?: string;
   customerName?: string;
-  customerPhone: string;
-  make: string;
-  model: string;
+  customerPhone?: string;
+  make?: string;
+  model?: string;
   category: string;
-  serviceType: string;
+  serviceType?: string;
   amount: number;
   paymentMode: "UPI / QR" | "Cash" | "Pending";
   paymentStatus: "Paid" | "Pending";
@@ -28,9 +28,9 @@ export interface IWashEntry {
 
 const WashEntrySchema = new Schema<IWashEntry>(
   {
-    vehicleNumber: { type: String, required: true, uppercase: true, trim: true, index: true },
+    vehicleNumber: { type: String, default: "", uppercase: true, trim: true, index: true },
     customerName: { type: String, default: "" },
-    customerPhone: { type: String, required: true, trim: true, index: true },
+    customerPhone: { type: String, default: "", trim: true, index: true },
     make: { type: String, default: "" },
     model: { type: String, default: "" },
     category: { type: String, required: true, default: "Hatchback (5 Seater)" },

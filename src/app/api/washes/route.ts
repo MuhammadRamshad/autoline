@@ -130,17 +130,28 @@ export async function POST(request: Request) {
       status
     } = body;
 
-    if (!vehicleNumber || !customerPhone || amount === undefined) {
+    if (amount === undefined || amount === null || isNaN(Number(amount)) || Number(amount) < 0) {
       return NextResponse.json(
-        { success: false, error: "Vehicle number, customer phone and amount are required" },
+        { success: false, error: "Valid amount is required" },
         { status: 400 }
       );
     }
 
+    const cleanPhone = (customerPhone || "").toString().trim();
+    if (cleanPhone) {
+      const digitsOnly = cleanPhone.replace(/\D/g, "");
+      if (digitsOnly.length !== 10) {
+        return NextResponse.json(
+          { success: false, error: "Phone number must be exactly 10 digits" },
+          { status: 400 }
+        );
+      }
+    }
+
     const newEntry = await (WashEntry as any).create({
-      vehicleNumber: vehicleNumber.toUpperCase().trim(),
+      vehicleNumber: vehicleNumber ? vehicleNumber.toUpperCase().trim() : "",
       customerName: customerName || "",
-      customerPhone: customerPhone.trim(),
+      customerPhone: cleanPhone,
       make: make || "",
       model: model || "",
       category: category || "Hatchback (5 Seater)",
@@ -184,7 +195,19 @@ export async function PATCH(request: Request) {
     const updateData: any = {};
     if (vehicleNumber !== undefined) updateData.vehicleNumber = vehicleNumber.toUpperCase().trim();
     if (customerName !== undefined) updateData.customerName = customerName.trim();
-    if (customerPhone !== undefined) updateData.customerPhone = customerPhone.trim();
+    if (customerPhone !== undefined) {
+      const cleanPhone = customerPhone.toString().trim();
+      if (cleanPhone) {
+        const digitsOnly = cleanPhone.replace(/\D/g, "");
+        if (digitsOnly.length !== 10) {
+          return NextResponse.json(
+            { success: false, error: "Phone number must be exactly 10 digits" },
+            { status: 400 }
+          );
+        }
+      }
+      updateData.customerPhone = cleanPhone;
+    }
     if (make !== undefined) updateData.make = make;
     if (model !== undefined) updateData.model = model;
     if (category !== undefined) updateData.category = category;
