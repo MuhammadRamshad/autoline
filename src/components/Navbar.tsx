@@ -16,7 +16,7 @@ export default function Navbar() {
 
   return (
     <header className="border-b border-neutral-900 bg-black/90 backdrop-blur sticky top-0 z-50">
-      <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
         
         {/* Brand */}
         <Link href="/" className="text-sm font-bold tracking-tight text-white uppercase hover:text-neutral-300 transition-colors">
@@ -25,7 +25,7 @@ export default function Navbar() {
 
         {/* Minimal Nav: Only present in admin views or shopkeeper view if needed */}
         {isAdmin && (
-          <div className="flex items-center gap-4 text-xs font-medium">
+          <div className="flex items-center gap-3 sm:gap-4 text-xs font-medium">
             <Link 
               href="/shop"
               className="text-neutral-400 hover:text-white transition-colors"
@@ -38,13 +38,20 @@ export default function Navbar() {
             >
               Admin
             </Link>
+            <Link 
+              href="/admin/pricing" 
+              className="text-neutral-400 hover:text-white transition-colors hidden sm:inline"
+            >
+              Pricing
+            </Link>
             {pathname !== "/admin/login" && (
               <button
                 onClick={handleLogout}
-                className="text-neutral-500 hover:text-white transition-colors flex items-center gap-1"
+                className="text-neutral-500 hover:text-white transition-colors flex items-center gap-1 cursor-pointer"
                 title="Sign out"
               >
                 <LogOut className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Logout</span>
               </button>
             )}
           </div>

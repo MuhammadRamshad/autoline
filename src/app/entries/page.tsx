@@ -163,39 +163,34 @@ export default function AllEntriesPage() {
   return (
     <div className="min-h-screen bg-black text-neutral-100 flex flex-col font-sans">
       {/* Top Header */}
-      <header className="border-b border-neutral-800 bg-neutral-950/80 backdrop-blur sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+      <header className="border-b border-neutral-800 bg-neutral-950/90 backdrop-blur sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
             <Link
               href="/"
-              className="p-2 border border-neutral-800 rounded bg-neutral-900 text-neutral-400 hover:text-white hover:border-neutral-700 transition"
+              className="p-1.5 sm:p-2 border border-neutral-800 rounded bg-neutral-900 text-neutral-400 hover:text-white hover:border-neutral-700 transition shrink-0"
               title="Back to Home"
             >
-              <ArrowLeft className="w-5 h-5" />
+              <ArrowLeft className="w-4 h-4" />
             </Link>
-            <div>
-              <h1 className="text-lg font-black uppercase tracking-wider text-white">
-                All Entries & Expenses
+            <div className="min-w-0">
+              <h1 className="text-sm sm:text-base font-black uppercase tracking-wider text-white truncate">
+                All Entries
               </h1>
-              <p className="text-xs text-neutral-400 font-mono">
-                Washes and shop expenses grouped by date
+              <p className="text-[10px] sm:text-xs text-neutral-400 font-mono truncate">
+                Washes & expenses by date
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <Link
-              href="/shop"
-              className="px-3.5 py-1.5 text-xs font-mono font-bold uppercase tracking-wider bg-white text-black hover:bg-neutral-200 transition rounded"
-            >
-              Shop Counter
-            </Link>
+          <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={() => fetchEntries()}
-              className="p-2 border border-neutral-800 rounded bg-neutral-900 text-neutral-400 hover:text-white transition"
+              className="p-1.5 sm:p-2 border border-neutral-800 rounded bg-neutral-900 text-neutral-400 hover:text-white transition flex items-center gap-1.5 text-xs font-mono"
               title="Refresh"
             >
-              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+              <span className="hidden sm:inline">Refresh</span>
             </button>
           </div>
         </div>
