@@ -101,20 +101,7 @@ export function exportToPDF(
   doc.setLineWidth(0.6);
   doc.line(marginX, 21, pageWidth - marginX, 21);
 
-  // 2. Report Subtitle / Scope
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(10);
-  doc.setTextColor(0, 0, 0);
-  doc.text(title.toUpperCase(), marginX, 27);
-
-  if (subtitle) {
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
-    doc.setTextColor(70, 70, 70);
-    doc.text(`Scope: ${subtitle}`, marginX, 31.5);
-  }
-
-  // 3. High-Contrast Summary Dashboard (Black & White Print Ready)
+  // 2. High-Contrast Summary Dashboard (Black & White Print Ready)
   // Metrics: TOTAL VEHICLES, REVENUE, EXPENSES, NET PROFIT, CASH / UPI, PENDING DUES
   let totalVehicles = entries.length;
   let revenue = 0; // Collected revenue (paid washes)
@@ -144,7 +131,7 @@ export function exportToPDF(
   const netProfit = revenue - totalExpenseAmount;
   const totalWashAmount = entries.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
 
-  const boxY = subtitle ? 35 : 31;
+  const boxY = 25;
   const cardHeight = 13;
   const numCards = 6;
   const cardSpacing = 2;
