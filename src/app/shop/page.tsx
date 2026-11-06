@@ -25,58 +25,14 @@ export default function ShopkeeperCounterPage() {
   const [vehicleNumber, setVehicleNumber] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerName, setCustomerName] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("Bike Normal");
+  const [vehicleSearchText, setVehicleSearchText] = useState("");
   const [selectedMake, setSelectedMake] = useState("");
   const [selectedModel, setSelectedModel] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("Bike Normal");
   const [amount, setAmount] = useState<number>(100);
   const [paymentMode, setPaymentMode] = useState<string>("UPI / QR");
   const [notes, setNotes] = useState("");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
-
-  // Auto-restore unsaved draft on crash or power cut
-  useEffect(() => {
-    try {
-      const savedDraft = localStorage.getItem("autoline_entry_draft");
-      if (savedDraft) {
-        const d = JSON.parse(savedDraft);
-        if (d.vehicleNumber) setVehicleNumber(d.vehicleNumber);
-        if (d.customerPhone) setCustomerPhone(d.customerPhone);
-        if (d.customerName) setCustomerName(d.customerName);
-        if (d.selectedCategory) setSelectedCategory(d.selectedCategory);
-        if (d.amount !== undefined) setAmount(d.amount);
-        if (d.paymentMode) setPaymentMode(d.paymentMode);
-        if (d.notes) setNotes(d.notes);
-        if (d.vehicleNumber || d.customerPhone) {
-          showToast("Unsaved entry draft restored!", "info");
-        }
-      }
-    } catch (e) {
-      console.error("Draft restore error", e);
-    }
-  }, []);
-
-  // Auto-save draft on every keystroke
-  useEffect(() => {
-    try {
-      // Only persist if at least some data has been entered
-      if (vehicleNumber || customerPhone || customerName || notes || amount !== 100) {
-        localStorage.setItem(
-          "autoline_entry_draft",
-          JSON.stringify({
-            vehicleNumber,
-            customerPhone,
-            customerName,
-            selectedCategory,
-            amount,
-            paymentMode,
-            notes,
-          })
-        );
-      }
-    } catch (e) {
-      console.error("Draft save error", e);
-    }
-  }, [vehicleNumber, customerPhone, customerName, selectedCategory, amount, paymentMode, notes]);
 
   // Modern Toast Notification State
   const [toast, setToast] = useState<{ type: "success" | "error" | "info"; message: string } | null>(null);
@@ -94,7 +50,6 @@ export default function ShopkeeperCounterPage() {
   }, [toast]);
 
   const [pricesList, setPricesList] = useState<any[]>([]);
-  const [vehicleSearchText, setVehicleSearchText] = useState("");
   const [filteredVehicles, setFilteredVehicles] = useState<IndianVehicleModel[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
 
@@ -105,6 +60,57 @@ export default function ShopkeeperCounterPage() {
   // Edit Modal State for Shopkeeper
   const [editingEntry, setEditingEntry] = useState<any | null>(null);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
+
+  // Auto-restore unsaved draft on crash or power cut
+  useEffect(() => {
+    try {
+      const savedDraft = localStorage.getItem("autoline_entry_draft");
+      if (savedDraft) {
+        const d = JSON.parse(savedDraft);
+        if (d.vehicleNumber) setVehicleNumber(d.vehicleNumber);
+        if (d.customerPhone) setCustomerPhone(d.customerPhone);
+        if (d.customerName) setCustomerName(d.customerName);
+        if (d.vehicleSearchText) setVehicleSearchText(d.vehicleSearchText);
+        if (d.selectedMake) setSelectedMake(d.selectedMake);
+        if (d.selectedModel) setSelectedModel(d.selectedModel);
+        if (d.selectedCategory) setSelectedCategory(d.selectedCategory);
+        if (d.amount !== undefined) setAmount(d.amount);
+        if (d.paymentMode) setPaymentMode(d.paymentMode);
+        if (d.notes) setNotes(d.notes);
+        if (d.vehicleNumber || d.customerPhone || d.vehicleSearchText) {
+          showToast("Unsaved entry draft restored!", "info");
+        }
+      }
+    } catch (e) {
+      console.error("Draft restore error", e);
+    }
+  }, []);
+
+  // Auto-save draft on every keystroke
+  useEffect(() => {
+    try {
+      // Only persist if at least some data has been entered
+      if (vehicleNumber || customerPhone || customerName || vehicleSearchText || notes || amount !== 100) {
+        localStorage.setItem(
+          "autoline_entry_draft",
+          JSON.stringify({
+            vehicleNumber,
+            customerPhone,
+            customerName,
+            vehicleSearchText,
+            selectedMake,
+            selectedModel,
+            selectedCategory,
+            amount,
+            paymentMode,
+            notes,
+          })
+        );
+      }
+    } catch (e) {
+      console.error("Draft save error", e);
+    }
+  }, [vehicleNumber, customerPhone, customerName, vehicleSearchText, selectedMake, selectedModel, selectedCategory, amount, paymentMode, notes]);
 
   // Expense Quick-Form State
   const [expenseTitle, setExpenseTitle] = useState("");
@@ -363,17 +369,9 @@ export default function ShopkeeperCounterPage() {
   const selectVehicle = (v: IndianVehicleModel) => {
     setSelectedMake(v.make);
     setSelectedModel(v.model);
-    setSelectedCategory(v.category);
-    // Auto-update amount according to category rate
-    const catTariff = pricesList.find((p) => p.category === v.category);
-    if (catTariff && catTariff.price !== undefined) {
-      setAmount(catTariff.price);
-    } else {
-      setAmount(v.defaultWashPrice);
-    }
     setVehicleSearchText(`${v.make} ${v.model}`);
     setShowDropdown(false);
-    showToast(`Selected ${v.make} ${v.model} (${v.category})`, "info");
+    showToast(`Selected ${v.make} ${v.model}`, "info");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
