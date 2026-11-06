@@ -18,12 +18,14 @@ import {
 interface PriceItem {
   _id?: string;
   category: string;
+  name?: string;
   price: number;
   group?: string;
+  groupLabel?: string;
   order?: number;
 }
 
-const GROUP_ORDER = [
+const GROUPS = [
   { key: "2 wheeler", title: "2 WHEELER" },
   { key: "car", title: "CAR" },
   { key: "pickup", title: "PICKUP" },
@@ -193,7 +195,7 @@ export default function PricingManagementPage() {
             <div>
               <h1 className="text-lg sm:text-xl font-bold uppercase tracking-tight">Category & Pricing</h1>
               <p className="text-[11px] sm:text-xs font-mono text-neutral-500 uppercase mt-0.5">
-                Manage tariffs by vehicle category
+                Headings: 2 Wheeler • Car • Pickup • Traveller
               </p>
             </div>
           </div>
@@ -214,12 +216,12 @@ export default function PricingManagementPage() {
               className="px-3.5 sm:px-4 py-1.5 sm:py-2 bg-white text-black text-xs font-mono uppercase tracking-wider font-semibold hover:bg-neutral-200 cursor-pointer flex items-center gap-1.5 rounded"
             >
               <Plus className="h-3.5 w-3.5" />
-              <span>Add Category</span>
+              <span>Add Item</span>
             </button>
           </div>
         </div>
 
-        {/* Add Category Form Dropdown */}
+        {/* Add Category Form */}
         {showAddCategory && (
           <form
             onSubmit={handleAddNewCategory}
@@ -227,7 +229,7 @@ export default function PricingManagementPage() {
           >
             <input
               type="text"
-              placeholder="Category Name (e.g. Electric Auto)"
+              placeholder="Name (e.g. Teflon Coating)"
               value={newCatName}
               onChange={(e) => setNewCatName(e.target.value)}
               className="bg-black border border-neutral-800 px-3 py-2 text-xs text-white flex-1 min-w-[200px] font-mono focus:outline-none focus:border-white rounded"
@@ -248,7 +250,7 @@ export default function PricingManagementPage() {
               <span className="text-xs text-neutral-500 font-mono">₹</span>
               <input
                 type="number"
-                placeholder="Amount (blank for none)"
+                placeholder="Rate (blank for none)"
                 value={newPrice}
                 onChange={(e) => setNewPrice(e.target.value)}
                 className="bg-transparent text-xs text-white w-28 font-mono focus:outline-none"
@@ -270,9 +272,9 @@ export default function PricingManagementPage() {
           </form>
         )}
 
-        {/* Grouped Category & Pricing List */}
+        {/* Headings & Items */}
         <div className="space-y-6">
-          {GROUP_ORDER.map((grp) => {
+          {GROUPS.map((grp) => {
             const groupItems = prices.filter((p) => {
               if (grp.key === "other") {
                 return !["2 wheeler", "car", "pickup", "traveller"].includes(p.group || "");
@@ -284,32 +286,33 @@ export default function PricingManagementPage() {
 
             return (
               <div key={grp.key} className="border border-neutral-900 bg-neutral-950 rounded-lg overflow-hidden">
-                {/* Group Header */}
-                <div className="px-4 py-3 bg-neutral-900/60 border-b border-neutral-900 flex items-center justify-between">
+                {/* Heading */}
+                <div className="px-4 py-3 bg-neutral-900/80 border-b border-neutral-900 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono font-bold tracking-wider uppercase text-neutral-200">
+                    <span className="text-sm font-mono font-bold tracking-widest uppercase text-white">
                       {grp.title}
                     </span>
                     <span className="text-[10px] font-mono text-neutral-500">
-                      ({groupItems.length} items)
+                      ({groupItems.length} {groupItems.length === 1 ? "rate" : "rates"})
                     </span>
                   </div>
                 </div>
 
-                {/* Items in group */}
+                {/* Rates under heading */}
                 <div className="divide-y divide-neutral-900/70">
                   {groupItems.map((item) => {
                     const isEditing = editingCategory === item.category;
+                    const displayName = item.name || item.category.replace(/^(Car|2 Wheeler) - /i, "");
 
                     return (
                       <div
                         key={item._id || item.category}
                         className="px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-neutral-900/30 transition-colors"
                       >
-                        {/* Category Name */}
+                        {/* Name */}
                         <div className="flex-1">
                           <span className="text-xs font-mono text-white font-medium">
-                            {item.category}
+                            {displayName}
                           </span>
                         </div>
 
@@ -345,7 +348,11 @@ export default function PricingManagementPage() {
                           ) : (
                             <div className="flex items-center gap-3">
                               <span className="text-xs font-mono font-bold text-white min-w-[70px] text-right">
-                                {item.price && item.price > 0 ? `₹${item.price}` : <span className="text-neutral-500 font-normal italic">No amount</span>}
+                                {item.price && item.price > 0 ? (
+                                  `₹${item.price}`
+                                ) : (
+                                  <span className="text-neutral-500 font-normal italic">No amount</span>
+                                )}
                               </span>
                               <button
                                 onClick={() => startEditPrice(item)}

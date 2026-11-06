@@ -863,12 +863,47 @@ export default function AllEntriesPage() {
                         }}
                         className="w-full bg-black border border-neutral-800 px-2.5 py-2 text-white font-mono focus:outline-none focus:border-white rounded"
                       >
-                        <option value="Custom">Custom</option>
-                        {tariffs.map((p) => (
-                          <option key={p.category} value={p.category}>
-                            {p.category} {p.price && p.price > 0 ? `— ₹${p.price}` : "— No Amount"}
-                          </option>
-                        ))}
+                        <option value="Custom" className="bg-neutral-900 text-white font-bold">Custom (Manual Amount)</option>
+                        
+                        {tariffs.some((p) => p.group === "2 wheeler") && (
+                          <optgroup label="2 WHEELER" className="bg-neutral-950 text-neutral-400 font-bold">
+                            {tariffs.filter((p) => p.group === "2 wheeler").map((p) => (
+                              <option key={p.category} value={p.category} className="text-white bg-black">
+                                {p.name || p.category} {p.price && p.price > 0 ? `— ₹${p.price}` : "— No Amount"}
+                              </option>
+                            ))}
+                          </optgroup>
+                        )}
+
+                        {tariffs.some((p) => p.group === "car") && (
+                          <optgroup label="CAR" className="bg-neutral-950 text-neutral-400 font-bold">
+                            {tariffs.filter((p) => p.group === "car").map((p) => (
+                              <option key={p.category} value={p.category} className="text-white bg-black">
+                                {(p.name || p.category).replace(/^Car - /i, "")} {p.price && p.price > 0 ? `— ₹${p.price}` : "— No Amount"}
+                              </option>
+                            ))}
+                          </optgroup>
+                        )}
+
+                        {tariffs.some((p) => p.group === "pickup") && (
+                          <optgroup label="PICKUP" className="bg-neutral-950 text-neutral-400 font-bold">
+                            {tariffs.filter((p) => p.group === "pickup").map((p) => (
+                              <option key={p.category} value={p.category} className="text-white bg-black">
+                                {p.name || p.category} {p.price && p.price > 0 ? `— ₹${p.price}` : "— No Amount"}
+                              </option>
+                            ))}
+                          </optgroup>
+                        )}
+
+                        {tariffs.some((p) => p.group === "traveller") && (
+                          <optgroup label="TRAVELLER" className="bg-neutral-950 text-neutral-400 font-bold">
+                            {tariffs.filter((p) => p.group === "traveller").map((p) => (
+                              <option key={p.category} value={p.category} className="text-white bg-black">
+                                {p.name || p.category} {p.price && p.price > 0 ? `— ₹${p.price}` : "— No Amount"}
+                              </option>
+                            ))}
+                          </optgroup>
+                        )}
                       </select>
                     </div>
 

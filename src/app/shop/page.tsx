@@ -25,7 +25,7 @@ export default function ShopkeeperCounterPage() {
   const [vehicleNumber, setVehicleNumber] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerName, setCustomerName] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("2 Wheeler - Bike Normal");
+  const [selectedCategory, setSelectedCategory] = useState("Bike Normal");
   const [selectedMake, setSelectedMake] = useState("");
   const [selectedModel, setSelectedModel] = useState("");
   const [amount, setAmount] = useState<number>(100);
@@ -487,7 +487,7 @@ export default function ShopkeeperCounterPage() {
                 </div>
               </div>
 
-              {/* Category (Single Selection with Custom at the top) */}
+              {/* Category (Grouped with Custom at the top) */}
               <div>
                 <label className="block text-xs uppercase font-mono tracking-wider text-neutral-400 mb-2">
                   Vehicle Category (Determines Rate)
@@ -499,13 +499,74 @@ export default function ShopkeeperCounterPage() {
                     className="w-full appearance-none bg-black border border-neutral-800 pl-3.5 pr-10 py-3 text-xs text-white focus:outline-none focus:border-white cursor-pointer"
                   >
                     {/* Custom on top of dropdown */}
-                    <option value="Custom">Custom (Manual Amount)</option>
+                    <option value="Custom" className="bg-neutral-900 text-white font-bold">
+                      Custom (Manual Amount)
+                    </option>
 
-                    {pricesList.map((p) => (
-                      <option key={p.category} value={p.category}>
-                        {p.category} {p.price && p.price > 0 ? `— ₹${p.price}` : "— No Amount"}
-                      </option>
-                    ))}
+                    {/* 2 WHEELER */}
+                    {pricesList.some((p) => p.group === "2 wheeler") && (
+                      <optgroup label="2 WHEELER" className="bg-neutral-950 text-neutral-400 font-bold">
+                        {pricesList
+                          .filter((p) => p.group === "2 wheeler")
+                          .map((p) => (
+                            <option key={p.category} value={p.category} className="text-white bg-black">
+                              {p.name || p.category} {p.price && p.price > 0 ? `— ₹${p.price}` : "— No Amount"}
+                            </option>
+                          ))}
+                      </optgroup>
+                    )}
+
+                    {/* CAR */}
+                    {pricesList.some((p) => p.group === "car") && (
+                      <optgroup label="CAR" className="bg-neutral-950 text-neutral-400 font-bold">
+                        {pricesList
+                          .filter((p) => p.group === "car")
+                          .map((p) => (
+                            <option key={p.category} value={p.category} className="text-white bg-black">
+                              {(p.name || p.category).replace(/^Car - /i, "")} {p.price && p.price > 0 ? `— ₹${p.price}` : "— No Amount"}
+                            </option>
+                          ))}
+                      </optgroup>
+                    )}
+
+                    {/* PICKUP */}
+                    {pricesList.some((p) => p.group === "pickup") && (
+                      <optgroup label="PICKUP" className="bg-neutral-950 text-neutral-400 font-bold">
+                        {pricesList
+                          .filter((p) => p.group === "pickup")
+                          .map((p) => (
+                            <option key={p.category} value={p.category} className="text-white bg-black">
+                              {p.name || p.category} {p.price && p.price > 0 ? `— ₹${p.price}` : "— No Amount"}
+                            </option>
+                          ))}
+                      </optgroup>
+                    )}
+
+                    {/* TRAVELLER */}
+                    {pricesList.some((p) => p.group === "traveller") && (
+                      <optgroup label="TRAVELLER" className="bg-neutral-950 text-neutral-400 font-bold">
+                        {pricesList
+                          .filter((p) => p.group === "traveller")
+                          .map((p) => (
+                            <option key={p.category} value={p.category} className="text-white bg-black">
+                              {p.name || p.category} {p.price && p.price > 0 ? `— ₹${p.price}` : "— No Amount"}
+                            </option>
+                          ))}
+                      </optgroup>
+                    )}
+
+                    {/* OTHER */}
+                    {pricesList.some((p) => !["2 wheeler", "car", "pickup", "traveller"].includes(p.group)) && (
+                      <optgroup label="OTHER" className="bg-neutral-950 text-neutral-400 font-bold">
+                        {pricesList
+                          .filter((p) => !["2 wheeler", "car", "pickup", "traveller"].includes(p.group))
+                          .map((p) => (
+                            <option key={p.category} value={p.category} className="text-white bg-black">
+                              {p.name || p.category} {p.price && p.price > 0 ? `— ₹${p.price}` : "— No Amount"}
+                            </option>
+                          ))}
+                      </optgroup>
+                    )}
                   </select>
                   <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3.5 text-neutral-400">
                     <ChevronDown className="h-4 w-4" />
@@ -904,12 +965,47 @@ export default function ShopkeeperCounterPage() {
                       }}
                       className="w-full bg-black border border-neutral-800 px-2.5 py-2 text-white font-mono focus:outline-none focus:border-white"
                     >
-                      <option value="Custom">Custom</option>
-                      {pricesList.map((p) => (
-                        <option key={p.category} value={p.category}>
-                          {p.category}
-                        </option>
-                      ))}
+                      <option value="Custom" className="bg-neutral-900 text-white font-bold">Custom (Manual Amount)</option>
+                      
+                      {pricesList.some((p) => p.group === "2 wheeler") && (
+                        <optgroup label="2 WHEELER" className="bg-neutral-950 text-neutral-400 font-bold">
+                          {pricesList.filter((p) => p.group === "2 wheeler").map((p) => (
+                            <option key={p.category} value={p.category} className="text-white bg-black">
+                              {p.name || p.category} {p.price && p.price > 0 ? `— ₹${p.price}` : "— No Amount"}
+                            </option>
+                          ))}
+                        </optgroup>
+                      )}
+
+                      {pricesList.some((p) => p.group === "car") && (
+                        <optgroup label="CAR" className="bg-neutral-950 text-neutral-400 font-bold">
+                          {pricesList.filter((p) => p.group === "car").map((p) => (
+                            <option key={p.category} value={p.category} className="text-white bg-black">
+                              {(p.name || p.category).replace(/^Car - /i, "")} {p.price && p.price > 0 ? `— ₹${p.price}` : "— No Amount"}
+                            </option>
+                          ))}
+                        </optgroup>
+                      )}
+
+                      {pricesList.some((p) => p.group === "pickup") && (
+                        <optgroup label="PICKUP" className="bg-neutral-950 text-neutral-400 font-bold">
+                          {pricesList.filter((p) => p.group === "pickup").map((p) => (
+                            <option key={p.category} value={p.category} className="text-white bg-black">
+                              {p.name || p.category} {p.price && p.price > 0 ? `— ₹${p.price}` : "— No Amount"}
+                            </option>
+                          ))}
+                        </optgroup>
+                      )}
+
+                      {pricesList.some((p) => p.group === "traveller") && (
+                        <optgroup label="TRAVELLER" className="bg-neutral-950 text-neutral-400 font-bold">
+                          {pricesList.filter((p) => p.group === "traveller").map((p) => (
+                            <option key={p.category} value={p.category} className="text-white bg-black">
+                              {p.name || p.category} {p.price && p.price > 0 ? `— ₹${p.price}` : "— No Amount"}
+                            </option>
+                          ))}
+                        </optgroup>
+                      )}
                     </select>
                   </div>
 

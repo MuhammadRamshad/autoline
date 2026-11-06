@@ -1,19 +1,33 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import PriceSetting from "@/models/PriceSetting";
-import { INITIAL_VEHICLE_CATEGORIES } from "@/lib/vehicleCategories";
+import { INITIAL_VEHICLE_CATEGORIES, OLD_OBSOLETE_CATEGORIES } from "@/lib/vehicleCategories";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     await dbConnect();
+    const { searchParams } = new URL(request.url);
+    const forceReset = searchParams.get("reset") === "true";
+
+    // If reset requested or old categories exist, purge obsolete ones
+    if (forceReset) {
+      await (PriceSetting as any).deleteMany({});
+      await (PriceSetting as any).insertMany(INITIAL_VEHICLE_CATEGORIES);
+    } else {
+      // Remove any obsolete categories from old system
+      await (PriceSetting as any).deleteMany({
+        category: { $in: OLD_OBSOLETE_CATEGORIES }
+      });
+    }
+
     let prices = await (PriceSetting as any).find({}).sort({ order: 1, createdAt: 1 }).lean();
 
-    // If no prices yet or old defaults exist, seed/sync with requested structure
+    // If empty, initialize
     if (!prices || prices.length === 0) {
       await (PriceSetting as any).insertMany(INITIAL_VEHICLE_CATEGORIES);
       prices = await (PriceSetting as any).find({}).sort({ order: 1, createdAt: 1 }).lean();
     } else {
-      // Check if newly requested categories exist, insert any missing
+      // Ensure all standard initial categories are present
       const existingNames = new Set(prices.map((p: any) => p.category));
       const missing = INITIAL_VEHICLE_CATEGORIES.filter((c) => !existingNames.has(c.category));
       if (missing.length > 0) {
@@ -22,14 +36,19 @@ export async function GET() {
       }
     }
 
-    const formattedPrices = prices.map((p: any) => ({
-      _id: p._id,
-      category: p.category,
-      group: p.group || "other",
-      price: Number(p.price) || 0,
-      order: p.order ?? 99,
-      notes: p.notes || ""
-    }));
+    const formattedPrices = prices.map((p: any) => {
+      const initMatch = INITIAL_VEHICLE_CATEGORIES.find((c) => c.category === p.category);
+      return {
+        _id: p._id,
+        category: p.category,
+        name: initMatch ? initMatch.name : p.category,
+        group: p.group || (initMatch ? initMatch.group : "other"),
+        groupLabel: initMatch ? initMatch.groupLabel : (p.group || "OTHER").toUpperCase(),
+        price: Number(p.price) || 0,
+        order: p.order ?? (initMatch ? initMatch.order : 99),
+        notes: p.notes || ""
+      };
+    });
 
     return NextResponse.json({
       success: true,
