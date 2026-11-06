@@ -114,29 +114,74 @@ export function exportToPDF(
     doc.text(`Scope: ${subtitle}`, marginX, 35);
   }
 
-  // 3. Compact Key Summary Box (High-contrast B&W bordered boxes)
-  const totalWashAmount = entries.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
+  // 3. High-Contrast Summary Dashboard (Black & White Print Ready)
+  // Metrics requested: TOTAL VEHICLES, REVENUE, EXPENSES, NET PROFIT, CASH / UPI, PENDING DUES
+  let totalVehicles = entries.length;
+  let revenue = 0; // Collected revenue (paid washes)
+  let pendingDues = 0; // Uncollected / pending dues
+  let pendingVehiclesCount = 0;
+  let cashAmount = 0;
+  let upiAmount = 0;
+
+  entries.forEach((e) => {
+    const amt = Number(e.amount) || 0;
+    const isPending = e.paymentMode === "Pending" || e.paymentStatus === "Pending";
+    if (isPending) {
+      pendingDues += amt;
+      pendingVehiclesCount += 1;
+    } else {
+      revenue += amt;
+      const mode = (e.paymentMode || "").toLowerCase();
+      if (mode.includes("cash")) {
+        cashAmount += amt;
+      } else {
+        // UPI, QR, Online, GPay, Card, etc.
+        upiAmount += amt;
+      }
+    }
+  });
+
   const totalExpenseAmount = expenses.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
-  const netBalance = totalWashAmount - totalExpenseAmount;
+  const netProfit = revenue - totalExpenseAmount;
+  const totalWashAmount = entries.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
 
   const boxY = subtitle ? 39 : 35;
-  const boxHeight = 12;
+  const cardHeight = 14;
+  const numCards = 6;
+  const cardSpacing = 2.5;
+  const totalSpacing = cardSpacing * (numCards - 1);
+  const cardWidth = (availableWidth - totalSpacing) / numCards;
 
-  // Single clean summary row
-  doc.setDrawColor(0, 0, 0);
-  doc.setLineWidth(0.4);
-  doc.setFillColor(250, 250, 250);
-  doc.rect(marginX, boxY, availableWidth, boxHeight, "FD");
+  const summaryCards = [
+    { label: "TOTAL VEHICLES", value: `${totalVehicles}` },
+    { label: "REVENUE", value: `Rs. ${revenue.toLocaleString("en-IN")}` },
+    { label: "EXPENSES", value: `Rs. ${totalExpenseAmount.toLocaleString("en-IN")}` },
+    { label: "NET PROFIT", value: `Rs. ${netProfit.toLocaleString("en-IN")}` },
+    { label: "CASH / UPI", value: `C: ${cashAmount.toLocaleString("en-IN")} | U: ${upiAmount.toLocaleString("en-IN")}` },
+    { label: "PENDING DUES", value: `Rs. ${pendingDues.toLocaleString("en-IN")}` }
+  ];
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(8);
-  doc.setTextColor(0, 0, 0);
+  summaryCards.forEach((card, idx) => {
+    const x = marginX + (idx * (cardWidth + cardSpacing));
+    
+    // Crisp bordered box for B&W print
+    doc.setDrawColor(0, 0, 0);
+    doc.setLineWidth(0.4);
+    doc.setFillColor(250, 250, 250);
+    doc.rect(x, boxY, cardWidth, cardHeight, "FD");
 
-  const colW = availableWidth / 4;
-  doc.text(`TOTAL WASHES: ${entries.length}`, marginX + 6, boxY + 7.5);
-  doc.text(`WASH REVENUE: Rs. ${totalWashAmount.toLocaleString("en-IN")}`, marginX + colW + 6, boxY + 7.5);
-  doc.text(`EXPENSES: Rs. ${totalExpenseAmount.toLocaleString("en-IN")}`, marginX + (colW * 2) + 6, boxY + 7.5);
-  doc.text(`NET BALANCE: Rs. ${netBalance.toLocaleString("en-IN")}`, marginX + (colW * 3) + 6, boxY + 7.5);
+    // Top small label
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(6.5);
+    doc.setTextColor(60, 60, 60);
+    doc.text(card.label, x + (cardWidth / 2), boxY + 4.8, { align: "center" });
+
+    // Main value
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(idx === 4 ? 7 : 9.5); // Slightly smaller font for CASH / UPI pair
+    doc.setTextColor(0, 0, 0);
+    doc.text(card.value, x + (cardWidth / 2), boxY + 10.8, { align: "center" });
+  });
 
   // 4. Vehicle Washes Table
   const tableBody = entries.map((e, idx) => {
@@ -160,7 +205,7 @@ export function exportToPDF(
   });
 
   autoTable(doc, {
-    startY: boxY + boxHeight + 4,
+    startY: boxY + cardHeight + 4,
     head: [["#", "DATE & TIME", "VEHICLE NO", "MODEL", "CATEGORY", "PHONE", "AMOUNT", "MODE", "STATUS"]],
     body: tableBody,
     foot: [
@@ -216,7 +261,7 @@ export function exportToPDF(
 
   // 5. If expenses exist, append dedicated Shop Expenses Table in report
   if (expenses && expenses.length > 0) {
-    const lastY = (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY : boxY + boxHeight + 20;
+    const lastY = (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY : boxY + cardHeight + 20;
 
     // Check if table needs a page break
     if (lastY > pageHeight - 55) {
