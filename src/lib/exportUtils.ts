@@ -53,17 +53,17 @@ export function exportToPDF(
   subtitle = "",
   expenses: any[] = []
 ) {
-  // A4 Landscape orientation: 297mm x 210mm
+  // Standard A4 Portrait orientation: 210mm x 297mm (Standard Indian office & printer paper format)
   const doc = new jsPDF({
-    orientation: "landscape",
+    orientation: "portrait",
     unit: "mm",
     format: "a4"
   });
 
-  const pageWidth = 297;
-  const pageHeight = 210;
-  const marginX = 14;
-  const availableWidth = pageWidth - (marginX * 2);
+  const pageWidth = 210;
+  const pageHeight = 297;
+  const marginX = 10;
+  const availableWidth = pageWidth - (marginX * 2); // 190mm
 
   // Today's date in Indian Standard Time YYYY-MM-DD
   const now = new Date();
@@ -76,46 +76,46 @@ export function exportToPDF(
 
   // 1. Clean B&W Header (White background, crisp black lines & text)
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(18);
+  doc.setFontSize(16);
   doc.setTextColor(0, 0, 0);
-  doc.text("AUTOLINE CAR WASH", marginX, 15);
-
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(9);
-  doc.setTextColor(60, 60, 60);
-  doc.text("VEHICLE DETAILING & WASH SERVICE STATEMENT", marginX, 20);
-
-  // Right Header: Date & Document info
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.setTextColor(0, 0, 0);
-  doc.text(`DATE: ${dateFormatted.toUpperCase()}`, pageWidth - marginX, 15, { align: "right" });
+  doc.text("AUTOLINE CAR WASH", marginX, 14);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
+  doc.setTextColor(60, 60, 60);
+  doc.text("VEHICLE DETAILING & WASH SERVICE STATEMENT", marginX, 18.5);
+
+  // Right Header: Date & Document info
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8.5);
+  doc.setTextColor(0, 0, 0);
+  doc.text(`DATE: ${dateFormatted.toUpperCase()}`, pageWidth - marginX, 14, { align: "right" });
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
   doc.setTextColor(80, 80, 80);
-  doc.text(`PRINTED: ${now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true })}`, pageWidth - marginX, 20, { align: "right" });
+  doc.text(`PRINTED: ${now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true })}`, pageWidth - marginX, 18.5, { align: "right" });
 
   // Crisp divider rule
   doc.setDrawColor(0, 0, 0);
-  doc.setLineWidth(0.8);
-  doc.line(marginX, 23, pageWidth - marginX, 23);
+  doc.setLineWidth(0.6);
+  doc.line(marginX, 21, pageWidth - marginX, 21);
 
   // 2. Report Subtitle / Scope
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
+  doc.setFontSize(10);
   doc.setTextColor(0, 0, 0);
-  doc.text(title.toUpperCase(), marginX, 30);
+  doc.text(title.toUpperCase(), marginX, 27);
 
   if (subtitle) {
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(8.5);
+    doc.setFontSize(8);
     doc.setTextColor(70, 70, 70);
-    doc.text(`Scope: ${subtitle}`, marginX, 35);
+    doc.text(`Scope: ${subtitle}`, marginX, 31.5);
   }
 
   // 3. High-Contrast Summary Dashboard (Black & White Print Ready)
-  // Metrics requested: TOTAL VEHICLES, REVENUE, EXPENSES, NET PROFIT, CASH / UPI, PENDING DUES
+  // Metrics: TOTAL VEHICLES, REVENUE, EXPENSES, NET PROFIT, CASH / UPI, PENDING DUES
   let totalVehicles = entries.length;
   let revenue = 0; // Collected revenue (paid washes)
   let pendingDues = 0; // Uncollected / pending dues
@@ -135,7 +135,6 @@ export function exportToPDF(
       if (mode.includes("cash")) {
         cashAmount += amt;
       } else {
-        // UPI, QR, Online, GPay, Card, etc.
         upiAmount += amt;
       }
     }
@@ -145,19 +144,19 @@ export function exportToPDF(
   const netProfit = revenue - totalExpenseAmount;
   const totalWashAmount = entries.reduce((acc, curr) => acc + (Number(curr.amount) || 0), 0);
 
-  const boxY = subtitle ? 39 : 35;
-  const cardHeight = 14;
+  const boxY = subtitle ? 35 : 31;
+  const cardHeight = 13;
   const numCards = 6;
-  const cardSpacing = 2.5;
+  const cardSpacing = 2;
   const totalSpacing = cardSpacing * (numCards - 1);
-  const cardWidth = (availableWidth - totalSpacing) / numCards;
+  const cardWidth = (availableWidth - totalSpacing) / numCards; // ~30mm each
 
   const summaryCards = [
     { label: "TOTAL VEHICLES", value: `${totalVehicles}` },
     { label: "REVENUE", value: `Rs. ${revenue.toLocaleString("en-IN")}` },
     { label: "EXPENSES", value: `Rs. ${totalExpenseAmount.toLocaleString("en-IN")}` },
     { label: "NET PROFIT", value: `Rs. ${netProfit.toLocaleString("en-IN")}` },
-    { label: "CASH / UPI", value: `C: ${cashAmount.toLocaleString("en-IN")} | U: ${upiAmount.toLocaleString("en-IN")}` },
+    { label: "CASH / UPI", value: `C:${cashAmount} | U:${upiAmount}` },
     { label: "PENDING DUES", value: `Rs. ${pendingDues.toLocaleString("en-IN")}` }
   ];
 
@@ -166,21 +165,21 @@ export function exportToPDF(
     
     // Crisp bordered box for B&W print
     doc.setDrawColor(0, 0, 0);
-    doc.setLineWidth(0.4);
+    doc.setLineWidth(0.35);
     doc.setFillColor(250, 250, 250);
     doc.rect(x, boxY, cardWidth, cardHeight, "FD");
 
     // Top small label
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(6.5);
+    doc.setFontSize(5.5);
     doc.setTextColor(60, 60, 60);
-    doc.text(card.label, x + (cardWidth / 2), boxY + 4.8, { align: "center" });
+    doc.text(card.label, x + (cardWidth / 2), boxY + 4.2, { align: "center" });
 
     // Main value
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(idx === 4 ? 7 : 9.5); // Slightly smaller font for CASH / UPI pair
+    doc.setFontSize(idx === 4 ? 6.5 : 8);
     doc.setTextColor(0, 0, 0);
-    doc.text(card.value, x + (cardWidth / 2), boxY + 10.8, { align: "center" });
+    doc.text(card.value, x + (cardWidth / 2), boxY + 10, { align: "center" });
   });
 
   // 4. Vehicle Washes Table
@@ -210,8 +209,8 @@ export function exportToPDF(
     body: tableBody,
     foot: [
       [
-        { content: "TOTAL", colSpan: 6, styles: { halign: "right", fontStyle: "bold", fontSize: 9 } },
-        { content: `Rs. ${totalWashAmount.toLocaleString("en-IN")}`, styles: { halign: "right", fontStyle: "bold", fontSize: 9 } },
+        { content: "TOTAL", colSpan: 6, styles: { halign: "right", fontStyle: "bold", fontSize: 8.5 } },
+        { content: `Rs. ${totalWashAmount.toLocaleString("en-IN")}`, styles: { halign: "right", fontStyle: "bold", fontSize: 8.5 } },
         { content: "", colSpan: 2 }
       ]
     ],
@@ -222,14 +221,14 @@ export function exportToPDF(
       fillColor: [240, 240, 240], // Light gray for crisp B&W printing
       textColor: [0, 0, 0],
       fontStyle: "bold",
-      fontSize: 8,
-      cellPadding: { top: 3, bottom: 3, left: 2, right: 2 },
+      fontSize: 7.5,
+      cellPadding: { top: 2.5, bottom: 2.5, left: 1.5, right: 1.5 },
       lineWidth: 0.3,
       lineColor: [0, 0, 0]
     },
     bodyStyles: {
-      fontSize: 8,
-      cellPadding: { top: 2.2, bottom: 2.2, left: 2, right: 2 },
+      fontSize: 7.5,
+      cellPadding: { top: 2, bottom: 2, left: 1.5, right: 1.5 },
       textColor: [0, 0, 0],
       lineColor: [180, 180, 180],
       lineWidth: 0.2
@@ -238,23 +237,23 @@ export function exportToPDF(
       fillColor: [255, 255, 255]
     },
     columnStyles: {
-      0: { cellWidth: 10, halign: "center" },
-      1: { cellWidth: 32 },
-      2: { cellWidth: 34, fontStyle: "bold" },
-      3: { cellWidth: 42 },
-      4: { cellWidth: 44 },
-      5: { cellWidth: 28, halign: "center" },
-      6: { cellWidth: 28, halign: "right", fontStyle: "bold" }, // Amount Column
-      7: { cellWidth: 26, halign: "center" },
-      8: { cellWidth: 25, halign: "center" }
+      0: { cellWidth: 8, halign: "center" },
+      1: { cellWidth: 26 },
+      2: { cellWidth: 27, fontStyle: "bold" },
+      3: { cellWidth: 32 },
+      4: { cellWidth: 32 },
+      5: { cellWidth: 21, halign: "center" },
+      6: { cellWidth: 20, halign: "right", fontStyle: "bold" }, // Amount Column
+      7: { cellWidth: 12, halign: "center" },
+      8: { cellWidth: 12, halign: "center" }
     },
     footStyles: {
       fillColor: [240, 240, 240],
       textColor: [0, 0, 0],
       fontStyle: "bold",
-      fontSize: 9,
-      cellPadding: { top: 3, bottom: 3, left: 2, right: 2 },
-      lineWidth: 0.4,
+      fontSize: 8.5,
+      cellPadding: { top: 2.5, bottom: 2.5, left: 1.5, right: 1.5 },
+      lineWidth: 0.35,
       lineColor: [0, 0, 0]
     }
   });
@@ -264,20 +263,20 @@ export function exportToPDF(
     const lastY = (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY : boxY + cardHeight + 20;
 
     // Check if table needs a page break
-    if (lastY > pageHeight - 55) {
+    if (lastY > pageHeight - 50) {
       doc.addPage();
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(10.5);
+      doc.setFontSize(9.5);
       doc.setTextColor(0, 0, 0);
-      doc.text("SHOP EXPENSES & OUTFLOWS", marginX, 16);
+      doc.text("SHOP EXPENSES & OUTFLOWS", marginX, 14);
     } else {
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(10.5);
+      doc.setFontSize(9.5);
       doc.setTextColor(0, 0, 0);
       doc.text("SHOP EXPENSES & OUTFLOWS", marginX, lastY + 8);
     }
 
-    const expStart = lastY > pageHeight - 55 ? 20 : lastY + 11;
+    const expStart = lastY > pageHeight - 50 ? 18 : lastY + 11;
 
     const expenseTableBody = expenses.map((exp, idx) => {
       const d = new Date(exp.createdAt);
@@ -301,8 +300,8 @@ export function exportToPDF(
       body: expenseTableBody,
       foot: [
         [
-          { content: "TOTAL", colSpan: 6, styles: { halign: "right", fontStyle: "bold", fontSize: 9 } },
-          { content: `Rs. ${totalExpenseAmount.toLocaleString("en-IN")}`, styles: { halign: "right", fontStyle: "bold", fontSize: 9 } }
+          { content: "TOTAL", colSpan: 6, styles: { halign: "right", fontStyle: "bold", fontSize: 8.5 } },
+          { content: `Rs. ${totalExpenseAmount.toLocaleString("en-IN")}`, styles: { halign: "right", fontStyle: "bold", fontSize: 8.5 } }
         ]
       ],
       theme: "plain",
@@ -312,14 +311,14 @@ export function exportToPDF(
         fillColor: [240, 240, 240],
         textColor: [0, 0, 0],
         fontStyle: "bold",
-        fontSize: 8,
-        cellPadding: { top: 3, bottom: 3, left: 2, right: 2 },
+        fontSize: 7.5,
+        cellPadding: { top: 2.5, bottom: 2.5, left: 1.5, right: 1.5 },
         lineWidth: 0.3,
         lineColor: [0, 0, 0]
       },
       bodyStyles: {
-        fontSize: 8,
-        cellPadding: { top: 2.2, bottom: 2.2, left: 2, right: 2 },
+        fontSize: 7.5,
+        cellPadding: { top: 2, bottom: 2, left: 1.5, right: 1.5 },
         textColor: [0, 0, 0],
         lineColor: [180, 180, 180],
         lineWidth: 0.2
@@ -331,19 +330,19 @@ export function exportToPDF(
         fillColor: [240, 240, 240],
         textColor: [0, 0, 0],
         fontStyle: "bold",
-        fontSize: 9,
-        cellPadding: { top: 3, bottom: 3, left: 2, right: 2 },
-        lineWidth: 0.4,
+        fontSize: 8.5,
+        cellPadding: { top: 2.5, bottom: 2.5, left: 1.5, right: 1.5 },
+        lineWidth: 0.35,
         lineColor: [0, 0, 0]
       },
       columnStyles: {
-        0: { cellWidth: 10, halign: "center" },
-        1: { cellWidth: 35 },
-        2: { cellWidth: 70, fontStyle: "bold" },
-        3: { cellWidth: 50 },
-        4: { cellWidth: 40 },
-        5: { cellWidth: 30, halign: "center" },
-        6: { cellWidth: 34, halign: "right", fontStyle: "bold" } // Amount Column
+        0: { cellWidth: 8, halign: "center" },
+        1: { cellWidth: 28 },
+        2: { cellWidth: 50, fontStyle: "bold" },
+        3: { cellWidth: 35 },
+        4: { cellWidth: 27 },
+        5: { cellWidth: 18, halign: "center" },
+        6: { cellWidth: 24, halign: "right", fontStyle: "bold" } // Amount Column
       }
     });
   }
@@ -354,13 +353,13 @@ export function exportToPDF(
     doc.setPage(i);
     doc.setDrawColor(0, 0, 0);
     doc.setLineWidth(0.3);
-    doc.line(marginX, pageHeight - 9, pageWidth - marginX, pageHeight - 9);
+    doc.line(marginX, pageHeight - 8, pageWidth - marginX, pageHeight - 8);
 
     doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.5);
+    doc.setFontSize(7);
     doc.setTextColor(50, 50, 50);
-    doc.text("AUTOLINE CAR WASH • OFFICIAL RECORD", marginX, pageHeight - 5);
-    doc.text(`Page ${i} of ${totalPages}`, pageWidth - marginX, pageHeight - 5, { align: "right" });
+    doc.text("AUTOLINE CAR WASH • OFFICIAL RECORD", marginX, pageHeight - 4.5);
+    doc.text(`Page ${i} of ${totalPages}`, pageWidth - marginX, pageHeight - 4.5, { align: "right" });
   }
 
   // Save with filename containing the date
