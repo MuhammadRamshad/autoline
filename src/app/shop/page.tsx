@@ -33,6 +33,51 @@ export default function ShopkeeperCounterPage() {
   const [notes, setNotes] = useState("");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
+  // Auto-restore unsaved draft on crash or power cut
+  useEffect(() => {
+    try {
+      const savedDraft = localStorage.getItem("autoline_entry_draft");
+      if (savedDraft) {
+        const d = JSON.parse(savedDraft);
+        if (d.vehicleNumber) setVehicleNumber(d.vehicleNumber);
+        if (d.customerPhone) setCustomerPhone(d.customerPhone);
+        if (d.customerName) setCustomerName(d.customerName);
+        if (d.selectedCategory) setSelectedCategory(d.selectedCategory);
+        if (d.amount !== undefined) setAmount(d.amount);
+        if (d.paymentMode) setPaymentMode(d.paymentMode);
+        if (d.notes) setNotes(d.notes);
+        if (d.vehicleNumber || d.customerPhone) {
+          showToast("Unsaved entry draft restored!", "info");
+        }
+      }
+    } catch (e) {
+      console.error("Draft restore error", e);
+    }
+  }, []);
+
+  // Auto-save draft on every keystroke
+  useEffect(() => {
+    try {
+      // Only persist if at least some data has been entered
+      if (vehicleNumber || customerPhone || customerName || notes || amount !== 100) {
+        localStorage.setItem(
+          "autoline_entry_draft",
+          JSON.stringify({
+            vehicleNumber,
+            customerPhone,
+            customerName,
+            selectedCategory,
+            amount,
+            paymentMode,
+            notes,
+          })
+        );
+      }
+    } catch (e) {
+      console.error("Draft save error", e);
+    }
+  }, [vehicleNumber, customerPhone, customerName, selectedCategory, amount, paymentMode, notes]);
+
   // Modern Toast Notification State
   const [toast, setToast] = useState<{ type: "success" | "error" | "info"; message: string } | null>(null);
 
@@ -377,6 +422,11 @@ export default function ShopkeeperCounterPage() {
           `Recorded ${data.entry.vehicleNumber || "Vehicle"} (₹${data.entry.amount} • ${data.entry.paymentMode})`,
           "success"
         );
+        // Clear saved draft once successfully submitted
+        try {
+          localStorage.removeItem("autoline_entry_draft");
+        } catch (e) {}
+
         setVehicleNumber("");
         setCustomerPhone("");
         setCustomerName("");
