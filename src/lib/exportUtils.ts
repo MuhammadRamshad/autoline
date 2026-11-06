@@ -198,6 +198,13 @@ export function exportToPDF(
     startY: cardY + cardHeight + 4.5,
     head: [["#", "DATE & TIME", "VEHICLE NO", "MODEL", "CATEGORY", "CUSTOMER", "PHONE", "AMOUNT", "MODE", "STATUS"]],
     body: tableBody,
+    foot: [
+      [
+        { content: "TOTAL", colSpan: 7, styles: { halign: "right", fontStyle: "bold" } },
+        { content: `Rs. ${totalWashAmount.toLocaleString("en-IN")}`, styles: { halign: "right", fontStyle: "bold" } },
+        { content: "", colSpan: 2 }
+      ]
+    ],
     theme: "plain",
     tableWidth: availableWidth,
     margin: { left: 14, right: 14 },
@@ -235,8 +242,8 @@ export function exportToPDF(
       fillColor: [15, 23, 42], // Slate 900
       textColor: [255, 255, 255],
       fontStyle: "bold",
-      fontSize: 8,
-      cellPadding: { top: 3.5, bottom: 3.5, left: 2.5, right: 2.5 }
+      fontSize: 8.5,
+      cellPadding: { top: 3, bottom: 3, left: 2.5, right: 2.5 }
     },
     didDrawCell: (data) => {
       // Custom colored status pill in table
@@ -309,6 +316,12 @@ export function exportToPDF(
       startY: expStart,
       head: [["#", "DATE & TIME", "EXPENSE TITLE", "CATEGORY", "PAID BY", "MODE", "AMOUNT"]],
       body: expenseTableBody,
+      foot: [
+        [
+          { content: "TOTAL", colSpan: 6, styles: { halign: "right", fontStyle: "bold" } },
+          { content: `Rs. ${totalExpenseAmount.toLocaleString("en-IN")}`, styles: { halign: "right", fontStyle: "bold" } }
+        ]
+      ],
       theme: "plain",
       tableWidth: availableWidth,
       margin: { left: 14, right: 14 },

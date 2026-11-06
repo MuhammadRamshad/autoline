@@ -296,6 +296,16 @@ export function generateEmailHtml(data: DailyReportData): string {
                 <tbody>
                   ${washRowsHtml}
                 </tbody>
+                <tfoot>
+                  <tr style="background-color: #0c0a09; border-top: 2px solid #44403c;">
+                    <td colspan="6" style="padding: 10px 12px; font-size: 11px; font-weight: bold; font-family: monospace; text-align: right; color: #d4d4d4; text-transform: uppercase;">
+                      Total
+                    </td>
+                    <td style="padding: 10px 12px; font-size: 13px; font-weight: bold; font-family: monospace; text-align: right; color: #ffffff;">
+                      Rs. ${data.washes.reduce((sum: number, w: any) => sum + (Number(w.amount) || 0), 0).toLocaleString("en-IN")}
+                    </td>
+                  </tr>
+                </tfoot>
               </table>
             </td>
           </tr>
@@ -321,6 +331,16 @@ export function generateEmailHtml(data: DailyReportData): string {
                 <tbody>
                   ${expenseRowsHtml}
                 </tbody>
+                <tfoot>
+                  <tr style="background-color: #1c0f05; border-top: 2px solid #78350f;">
+                    <td colspan="6" style="padding: 10px 12px; font-size: 11px; font-weight: bold; font-family: monospace; text-align: right; color: #fed7aa; text-transform: uppercase;">
+                      Total
+                    </td>
+                    <td style="padding: 10px 12px; font-size: 13px; font-weight: bold; font-family: monospace; text-align: right; color: #f87171;">
+                      Rs. ${data.totalExpenses.toLocaleString("en-IN")}
+                    </td>
+                  </tr>
+                </tfoot>
               </table>
             </td>
           </tr>
