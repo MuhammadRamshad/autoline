@@ -25,10 +25,10 @@ export default function ShopkeeperCounterPage() {
   const [vehicleNumber, setVehicleNumber] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerName, setCustomerName] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("Hatchback (5 Seater)");
+  const [selectedCategory, setSelectedCategory] = useState("2 Wheeler - Bike Normal");
   const [selectedMake, setSelectedMake] = useState("");
   const [selectedModel, setSelectedModel] = useState("");
-  const [amount, setAmount] = useState<number>(350);
+  const [amount, setAmount] = useState<number>(100);
   const [paymentMode, setPaymentMode] = useState<string>("UPI / QR");
   const [notes, setNotes] = useState("");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -159,10 +159,6 @@ export default function ShopkeeperCounterPage() {
       const data = await res.json();
       if (data.success && data.prices) {
         setPricesList(data.prices);
-        const match = data.prices.find((p: any) => p.category === selectedCategory);
-        if (match) {
-          setAmount(match.price);
-        }
       }
     } catch (e) {
       console.error(e);
@@ -182,16 +178,30 @@ export default function ShopkeeperCounterPage() {
     }
   };
 
-
-
-  // Automatically update the single amount whenever Category changes based on Admin's rate
-  useEffect(() => {
-    if (pricesList.length === 0) return;
-    const catTariff = pricesList.find((p) => p.category === selectedCategory);
+  // When user selects a category from dropdown:
+  const handleCategoryChange = (catName: string) => {
+    setSelectedCategory(catName);
+    if (catName === "Custom") {
+      // Keep existing amount or allow custom typing
+      return;
+    }
+    const catTariff = pricesList.find((p) => p.category === catName);
     if (catTariff && catTariff.price !== undefined) {
       setAmount(catTariff.price);
     }
-  }, [selectedCategory, pricesList]);
+  };
+
+  // When user edits the amount box:
+  const handleAmountChange = (newVal: number) => {
+    setAmount(newVal);
+    // If current category has a preset price and user edited to a different amount, switch to "Custom"
+    if (selectedCategory !== "Custom") {
+      const catTariff = pricesList.find((p) => p.category === selectedCategory);
+      if (catTariff && catTariff.price !== newVal) {
+        setSelectedCategory("Custom");
+      }
+    }
+  };
 
   const markAsSettled = async (id: string, mode: string = "Cash") => {
     try {
@@ -477,7 +487,7 @@ export default function ShopkeeperCounterPage() {
                 </div>
               </div>
 
-              {/* Category (Single Selection with chevron and instant rate auto-fill) */}
+              {/* Category (Single Selection with Custom at the top) */}
               <div>
                 <label className="block text-xs uppercase font-mono tracking-wider text-neutral-400 mb-2">
                   Vehicle Category (Determines Rate)
@@ -485,26 +495,17 @@ export default function ShopkeeperCounterPage() {
                 <div className="relative">
                   <select
                     value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    onChange={(e) => handleCategoryChange(e.target.value)}
                     className="w-full appearance-none bg-black border border-neutral-800 pl-3.5 pr-10 py-3 text-xs text-white focus:outline-none focus:border-white cursor-pointer"
                   >
-                    {pricesList.length > 0 ? (
-                      pricesList.map((p) => (
-                        <option key={p.category} value={p.category}>
-                          {p.category} — ₹{p.price}
-                        </option>
-                      ))
-                    ) : (
-                      <>
-                        <option value="Bike / Scooter">Bike / Scooter — ₹150</option>
-                        <option value="Hatchback (5 Seater)">Hatchback (5 Seater) — ₹350</option>
-                        <option value="Sedan (5 Seater)">Sedan (5 Seater) — ₹420</option>
-                        <option value="Compact SUV (5 Seater)">Compact SUV (5 Seater) — ₹480</option>
-                        <option value="SUV / MUV (7 Seater)">SUV / MUV (7 Seater) — ₹600</option>
-                        <option value="Luxury / Large Vehicle">Luxury / Large Vehicle — ₹850</option>
-                        <option value="Auto / Commercial">Auto / Commercial — ₹300</option>
-                      </>
-                    )}
+                    {/* Custom on top of dropdown */}
+                    <option value="Custom">Custom (Manual Amount)</option>
+
+                    {pricesList.map((p) => (
+                      <option key={p.category} value={p.category}>
+                        {p.category} {p.price && p.price > 0 ? `— ₹${p.price}` : "— No Amount"}
+                      </option>
+                    ))}
                   </select>
                   <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3.5 text-neutral-400">
                     <ChevronDown className="h-4 w-4" />
@@ -555,7 +556,9 @@ export default function ShopkeeperCounterPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <span className="text-xs uppercase font-mono tracking-wider text-neutral-400 block">Total Amount *</span>
-                    <span className="text-[10px] text-neutral-500 font-mono">Auto-filled from category rate • Editable</span>
+                    <span className="text-[10px] text-neutral-500 font-mono">
+                      {selectedCategory === "Custom" ? "Custom Rate (Manual Entry)" : "Auto-filled • Editing changes category to Custom"}
+                    </span>
                   </div>
                   <div className="flex items-baseline gap-1">
                     <span className="text-sm font-mono text-neutral-500">₹</span>
@@ -563,7 +566,7 @@ export default function ShopkeeperCounterPage() {
                       type="number"
                       required
                       value={amount}
-                      onChange={(e) => setAmount(Number(e.target.value))}
+                      onChange={(e) => handleAmountChange(Number(e.target.value))}
                       className="w-28 bg-transparent border-b border-neutral-700 font-mono text-2xl font-bold text-white focus:outline-none focus:border-white text-right"
                     />
                   </div>
@@ -888,6 +891,10 @@ export default function ShopkeeperCounterPage() {
                       value={editingEntry.category}
                       onChange={(e) => {
                         const newCat = e.target.value;
+                        if (newCat === "Custom") {
+                          setEditingEntry({ ...editingEntry, category: "Custom" });
+                          return;
+                        }
                         const match = pricesList.find((p) => p.category === newCat);
                         setEditingEntry({
                           ...editingEntry,
@@ -897,6 +904,7 @@ export default function ShopkeeperCounterPage() {
                       }}
                       className="w-full bg-black border border-neutral-800 px-2.5 py-2 text-white font-mono focus:outline-none focus:border-white"
                     >
+                      <option value="Custom">Custom</option>
                       {pricesList.map((p) => (
                         <option key={p.category} value={p.category}>
                           {p.category}
@@ -911,7 +919,12 @@ export default function ShopkeeperCounterPage() {
                       type="number"
                       required
                       value={editingEntry.amount}
-                      onChange={(e) => setEditingEntry({ ...editingEntry, amount: Number(e.target.value) })}
+                      onChange={(e) => {
+                        const val = Number(e.target.value);
+                        const match = pricesList.find((p) => p.category === editingEntry.category);
+                        const nextCat = match && match.price !== val ? "Custom" : editingEntry.category;
+                        setEditingEntry({ ...editingEntry, amount: val, category: nextCat });
+                      }}
                       className="w-full bg-black border border-neutral-800 px-3 py-2 text-white font-mono font-bold focus:outline-none focus:border-white"
                     />
                   </div>

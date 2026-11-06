@@ -5,28 +5,44 @@ import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import { 
   ArrowLeft, 
-  Car, 
-  ChevronDown, 
-  ChevronUp, 
   Trash2, 
   Plus, 
   RefreshCw,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  Edit2,
+  Save,
+  X
 } from "lucide-react";
 
+interface PriceItem {
+  _id?: string;
+  category: string;
+  price: number;
+  group?: string;
+  order?: number;
+}
+
+const GROUP_ORDER = [
+  { key: "2 wheeler", title: "2 WHEELER" },
+  { key: "car", title: "CAR" },
+  { key: "pickup", title: "PICKUP" },
+  { key: "traveller", title: "TRAVELLER" },
+  { key: "other", title: "OTHER CATEGORIES" },
+];
+
 export default function PricingManagementPage() {
-  const [prices, setPrices] = useState<any[]>([]);
+  const [prices, setPrices] = useState<PriceItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
-  const [editPrice, setEditPrice] = useState<number>(0);
-  const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+  const [editPrice, setEditPrice] = useState<string>("");
 
   // Add category state
   const [showAddCategory, setShowAddCategory] = useState(false);
   const [newCatName, setNewCatName] = useState("");
-  const [newPrice, setNewPrice] = useState(400);
+  const [newPrice, setNewPrice] = useState<string>("");
+  const [newGroup, setNewGroup] = useState<string>("other");
 
   // Toast
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
@@ -58,19 +74,21 @@ export default function PricingManagementPage() {
     return () => clearInterval(interval);
   }, []);
 
-  const startEditPrice = (item: any) => {
+  const startEditPrice = (item: PriceItem) => {
     setEditingCategory(item.category);
-    setEditPrice(item.price);
+    setEditPrice(item.price === 0 ? "" : item.price.toString());
   };
 
-  const savePriceSetting = async (categoryName: string) => {
+  const savePriceSetting = async (categoryName: string, groupName?: string) => {
     try {
+      const parsedPrice = editPrice.trim() === "" ? 0 : Number(editPrice);
       const res = await fetch("/api/prices", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           category: categoryName,
-          price: editPrice,
+          price: parsedPrice,
+          group: groupName,
         }),
       });
 
@@ -110,18 +128,20 @@ export default function PricingManagementPage() {
     if (!newCatName.trim()) return;
 
     try {
+      const parsed = newPrice.trim() === "" ? 0 : Number(newPrice);
       const res = await fetch("/api/prices", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           category: newCatName.trim(),
-          price: Number(newPrice),
+          price: parsed,
+          group: newGroup,
         }),
       });
 
       if (res.ok) {
         setNewCatName("");
-        setNewPrice(400);
+        setNewPrice("");
         setShowAddCategory(false);
         showToast("New category created successfully", "success");
         fetchPrices();
@@ -158,7 +178,7 @@ export default function PricingManagementPage() {
         </div>
       )}
 
-      <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-10 space-y-6 sm:space-y-8">
+      <main className="flex-1 max-w-4xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-10 space-y-6 sm:space-y-8">
         
         {/* Title Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 border-b border-neutral-900 pb-4 sm:pb-5">
@@ -171,9 +191,9 @@ export default function PricingManagementPage() {
               <ArrowLeft className="w-4 h-4" />
             </Link>
             <div>
-              <h1 className="text-lg sm:text-xl font-bold uppercase tracking-tight">Category Rates & Pricing</h1>
+              <h1 className="text-lg sm:text-xl font-bold uppercase tracking-tight">Category & Pricing</h1>
               <p className="text-[11px] sm:text-xs font-mono text-neutral-500 uppercase mt-0.5">
-                Manage fixed tariffs and vehicle categories for counter entry
+                Manage tariffs by vehicle category
               </p>
             </div>
           </div>
@@ -207,28 +227,38 @@ export default function PricingManagementPage() {
           >
             <input
               type="text"
-              placeholder="Category Name (e.g. Electric 3-Wheeler)"
+              placeholder="Category Name (e.g. Electric Auto)"
               value={newCatName}
               onChange={(e) => setNewCatName(e.target.value)}
-              className="bg-black border border-neutral-800 px-3 py-2 text-xs text-white flex-1 min-w-[220px] font-mono focus:outline-none focus:border-white"
+              className="bg-black border border-neutral-800 px-3 py-2 text-xs text-white flex-1 min-w-[200px] font-mono focus:outline-none focus:border-white rounded"
               required
             />
-            <div className="flex items-center gap-1 bg-black border border-neutral-800 px-3 py-2">
+            <select
+              value={newGroup}
+              onChange={(e) => setNewGroup(e.target.value)}
+              className="bg-black border border-neutral-800 px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-white rounded"
+            >
+              <option value="2 wheeler">2 Wheeler</option>
+              <option value="car">Car</option>
+              <option value="pickup">Pickup</option>
+              <option value="traveller">Traveller</option>
+              <option value="other">Other</option>
+            </select>
+            <div className="flex items-center gap-1 bg-black border border-neutral-800 px-3 py-2 rounded">
               <span className="text-xs text-neutral-500 font-mono">₹</span>
               <input
                 type="number"
-                placeholder="Rate"
+                placeholder="Amount (blank for none)"
                 value={newPrice}
-                onChange={(e) => setNewPrice(Number(e.target.value))}
-                className="bg-transparent text-xs text-white w-24 font-mono focus:outline-none"
-                required
+                onChange={(e) => setNewPrice(e.target.value)}
+                className="bg-transparent text-xs text-white w-28 font-mono focus:outline-none"
               />
             </div>
             <button
               type="submit"
-              className="bg-white text-black text-xs font-mono font-bold uppercase px-5 py-2 hover:bg-neutral-200 cursor-pointer"
+              className="bg-white text-black text-xs font-mono font-bold uppercase px-4 py-2 hover:bg-neutral-200 cursor-pointer rounded"
             >
-              Save Category
+              Save
             </button>
             <button
               type="button"
@@ -240,117 +270,107 @@ export default function PricingManagementPage() {
           </form>
         )}
 
-        {/* Pricing Table */}
-        <div className="border border-neutral-900 bg-neutral-950 p-5 rounded">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs font-mono">
-              <thead className="border-b border-neutral-900 text-neutral-500 uppercase">
-                <tr>
-                  <th className="py-2.5 px-3">Vehicle Category</th>
-                  <th className="py-2.5 px-3">Included Vehicles</th>
-                  <th className="py-2.5 px-3">Wash Rate</th>
-                  <th className="py-2.5 px-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-neutral-900">
-                {prices.map((item) => {
-                  const isEditing = editingCategory === item.category;
-                  const isExpanded = expandedCategory === item.category;
-                  const vehicleCount = item.vehicles?.length || 0;
+        {/* Grouped Category & Pricing List */}
+        <div className="space-y-6">
+          {GROUP_ORDER.map((grp) => {
+            const groupItems = prices.filter((p) => {
+              if (grp.key === "other") {
+                return !["2 wheeler", "car", "pickup", "traveller"].includes(p.group || "");
+              }
+              return (p.group || "").toLowerCase() === grp.key;
+            });
 
-                  return (
-                    <tr key={item._id || item.category} className="group hover:bg-neutral-900/30 transition">
-                      <td className="py-3 px-3 text-white font-medium align-top">
-                        <div className="flex items-center gap-2">
-                          <Car className="h-3.5 w-3.5 text-neutral-500" />
-                          <span>{item.category}</span>
+            if (groupItems.length === 0) return null;
+
+            return (
+              <div key={grp.key} className="border border-neutral-900 bg-neutral-950 rounded-lg overflow-hidden">
+                {/* Group Header */}
+                <div className="px-4 py-3 bg-neutral-900/60 border-b border-neutral-900 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono font-bold tracking-wider uppercase text-neutral-200">
+                      {grp.title}
+                    </span>
+                    <span className="text-[10px] font-mono text-neutral-500">
+                      ({groupItems.length} items)
+                    </span>
+                  </div>
+                </div>
+
+                {/* Items in group */}
+                <div className="divide-y divide-neutral-900/70">
+                  {groupItems.map((item) => {
+                    const isEditing = editingCategory === item.category;
+
+                    return (
+                      <div
+                        key={item._id || item.category}
+                        className="px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-neutral-900/30 transition-colors"
+                      >
+                        {/* Category Name */}
+                        <div className="flex-1">
+                          <span className="text-xs font-mono text-white font-medium">
+                            {item.category}
+                          </span>
                         </div>
-                      </td>
 
-                      {/* Models Included Column */}
-                      <td className="py-3 px-3 text-neutral-400 align-top max-w-md">
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => setExpandedCategory(isExpanded ? null : item.category)}
-                            className="inline-flex items-center gap-1 text-[11px] font-mono text-neutral-300 hover:text-white bg-neutral-900 border border-neutral-800 px-2 py-0.5 cursor-pointer"
-                          >
-                            <span>{vehicleCount} models</span>
-                            {isExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                          </button>
-                        </div>
-
-                        {/* Expanded vehicle list chips */}
-                        {isExpanded && (
-                          <div className="mt-2.5 p-2 bg-neutral-950 border border-neutral-850 flex flex-wrap gap-1 max-h-40 overflow-y-auto">
-                            {item.vehicles?.map((vName: string, i: number) => (
-                              <span key={i} className="text-[10px] bg-neutral-900 text-neutral-300 px-2 py-0.5 border border-neutral-800">
-                                {vName}
+                        {/* Price & Actions */}
+                        <div className="flex items-center justify-between sm:justify-end gap-3">
+                          {isEditing ? (
+                            <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-1 bg-black border border-neutral-700 px-2.5 py-1 rounded">
+                                <span className="text-xs text-neutral-400 font-mono">₹</span>
+                                <input
+                                  type="number"
+                                  placeholder="No amount"
+                                  value={editPrice}
+                                  onChange={(e) => setEditPrice(e.target.value)}
+                                  className="w-20 bg-transparent text-xs text-white font-mono font-bold focus:outline-none"
+                                  autoFocus
+                                />
+                              </div>
+                              <button
+                                onClick={() => savePriceSetting(item.category, item.group)}
+                                className="px-2.5 py-1 bg-white text-black text-[11px] font-mono font-bold uppercase rounded hover:bg-neutral-200 cursor-pointer flex items-center gap-1"
+                              >
+                                <Save className="h-3 w-3" />
+                                <span>Save</span>
+                              </button>
+                              <button
+                                onClick={() => setEditingCategory(null)}
+                                className="p-1 text-neutral-500 hover:text-white cursor-pointer"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-3">
+                              <span className="text-xs font-mono font-bold text-white min-w-[70px] text-right">
+                                {item.price && item.price > 0 ? `₹${item.price}` : <span className="text-neutral-500 font-normal italic">No amount</span>}
                               </span>
-                            ))}
-                          </div>
-                        )}
-                      </td>
-
-                      {/* Single Wash Rate */}
-                      <td className="py-3 px-3 align-top font-bold text-white text-sm">
-                        {isEditing ? (
-                          <div className="flex items-center gap-1">
-                            <span>₹</span>
-                            <input
-                              type="number"
-                              value={editPrice}
-                              onChange={(e) => setEditPrice(Number(e.target.value))}
-                              className="w-24 bg-black border border-neutral-700 px-2 py-1 text-white text-xs font-mono"
-                              autoFocus
-                            />
-                          </div>
-                        ) : (
-                          `₹${item.price}`
-                        )}
-                      </td>
-
-                      {/* Actions: Edit & Delete */}
-                      <td className="py-3 px-3 text-right align-top">
-                        {isEditing ? (
-                          <div className="flex items-center justify-end gap-1.5">
-                            <button
-                              onClick={() => savePriceSetting(item.category)}
-                              className="px-2.5 py-1 bg-white text-black text-[11px] uppercase font-semibold cursor-pointer hover:bg-neutral-200"
-                            >
-                              Save
-                            </button>
-                            <button
-                              onClick={() => setEditingCategory(null)}
-                              className="px-2 py-1 text-neutral-500 hover:text-white cursor-pointer"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              onClick={() => startEditPrice(item)}
-                              className="px-2.5 py-1 bg-neutral-900 hover:bg-neutral-800 text-white text-[11px] uppercase font-mono border border-neutral-800 cursor-pointer"
-                            >
-                              Edit Rate
-                            </button>
-                            <button
-                              onClick={() => handleDeleteCategory(item.category, item._id)}
-                              className="text-neutral-600 hover:text-rose-400 cursor-pointer p-1"
-                              title="Delete category"
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                              <button
+                                onClick={() => startEditPrice(item)}
+                                className="p-1 text-neutral-400 hover:text-white hover:bg-neutral-900 rounded cursor-pointer transition-colors"
+                                title="Edit Rate"
+                              >
+                                <Edit2 className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteCategory(item.category, item._id)}
+                                className="p-1 text-neutral-600 hover:text-rose-400 hover:bg-neutral-900 rounded cursor-pointer transition-colors"
+                                title="Delete"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </main>
     </div>

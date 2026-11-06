@@ -1,44 +1,39 @@
 import { NextResponse } from "next/server";
 import dbConnect from "@/lib/mongodb";
 import PriceSetting from "@/models/PriceSetting";
-import { INDIAN_VEHICLES_DATABASE } from "@/lib/vehicleDatabase";
-
-const DEFAULT_CATEGORY_PRICES = [
-  { category: "Bike / Scooter", price: 150, notes: "All two wheelers & scooters" },
-  { category: "Hatchback (5 Seater)", price: 350, notes: "Alto, Swift, i10, Baleno, Tiago, etc." },
-  { category: "Sedan (5 Seater)", price: 420, notes: "Dzire, Verna, City, Virtus, Ciaz, etc." },
-  { category: "Compact SUV (5 Seater)", price: 480, notes: "Brezza, Creta, Nexon, Sonet, Thar, etc." },
-  { category: "SUV / MUV (7 Seater)", price: 600, notes: "Innova, Scorpio, XUV700, Safari, Ertiga, etc." },
-  { category: "Luxury / Large Vehicle", price: 850, notes: "BMW, Mercedes, Audi, Fortuner, Defender, etc." },
-  { category: "Auto / Commercial", price: 300, notes: "Auto Rickshaws, Tata Ace, Pickup, Vans" },
-];
+import { INITIAL_VEHICLE_CATEGORIES } from "@/lib/vehicleCategories";
 
 export async function GET() {
   try {
     await dbConnect();
-    let prices = await (PriceSetting as any).find({}).sort({ createdAt: 1 }).lean();
+    let prices = await (PriceSetting as any).find({}).sort({ order: 1, createdAt: 1 }).lean();
 
+    // If no prices yet or old defaults exist, seed/sync with requested structure
     if (!prices || prices.length === 0) {
-      await (PriceSetting as any).insertMany(DEFAULT_CATEGORY_PRICES);
-      prices = await (PriceSetting as any).find({}).sort({ createdAt: 1 }).lean();
+      await (PriceSetting as any).insertMany(INITIAL_VEHICLE_CATEGORIES);
+      prices = await (PriceSetting as any).find({}).sort({ order: 1, createdAt: 1 }).lean();
+    } else {
+      // Check if newly requested categories exist, insert any missing
+      const existingNames = new Set(prices.map((p: any) => p.category));
+      const missing = INITIAL_VEHICLE_CATEGORIES.filter((c) => !existingNames.has(c.category));
+      if (missing.length > 0) {
+        await (PriceSetting as any).insertMany(missing);
+        prices = await (PriceSetting as any).find({}).sort({ order: 1, createdAt: 1 }).lean();
+      }
     }
 
-    // Attach vehicles list mapped under each category from INDIAN_VEHICLES_DATABASE
-    const enrichedPrices = prices.map((p: any) => {
-      const matchingVehicles = INDIAN_VEHICLES_DATABASE.filter(
-        (v) => v.category === p.category
-      ).map((v) => `${v.make} ${v.model}`);
-      return {
-        ...p,
-        price: p.price ?? 350,
-        vehicles: matchingVehicles,
-      };
-    });
+    const formattedPrices = prices.map((p: any) => ({
+      _id: p._id,
+      category: p.category,
+      group: p.group || "other",
+      price: Number(p.price) || 0,
+      order: p.order ?? 99,
+      notes: p.notes || ""
+    }));
 
     return NextResponse.json({
       success: true,
-      prices: enrichedPrices,
-      vehiclesCatalog: INDIAN_VEHICLES_DATABASE,
+      prices: formattedPrices,
     });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
@@ -49,18 +44,22 @@ export async function POST(request: Request) {
   try {
     await dbConnect();
     const body = await request.json();
-    const { category, price, notes } = body;
+    const { category, price, group, order, notes } = body;
 
     if (!category) {
       return NextResponse.json({ success: false, error: "Category is required" }, { status: 400 });
     }
 
+    const updateObj: any = {
+      price: Math.max(0, Number(price) || 0),
+    };
+    if (group !== undefined) updateObj.group = group;
+    if (order !== undefined) updateObj.order = Number(order);
+    if (notes !== undefined) updateObj.notes = notes;
+
     const updated = await (PriceSetting as any).findOneAndUpdate(
       { category },
-      { 
-        price: Number(price),
-        notes: notes || "" 
-      },
+      { $set: updateObj },
       { upsert: true, new: true }
     );
 
@@ -79,13 +78,15 @@ export async function DELETE(request: Request) {
 
     if (id) {
       await (PriceSetting as any).findByIdAndDelete(id);
-    } else if (category) {
-      await (PriceSetting as any).findOneAndDelete({ category });
-    } else {
-      return NextResponse.json({ success: false, error: "Category or id required" }, { status: 400 });
+      return NextResponse.json({ success: true, message: "Price deleted" });
     }
 
-    return NextResponse.json({ success: true, message: "Category deleted" });
+    if (category) {
+      await (PriceSetting as any).findOneAndDelete({ category });
+      return NextResponse.json({ success: true, message: "Category deleted" });
+    }
+
+    return NextResponse.json({ success: false, error: "ID or Category required" }, { status: 400 });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }

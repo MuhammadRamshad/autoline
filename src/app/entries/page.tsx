@@ -850,6 +850,10 @@ export default function AllEntriesPage() {
                         value={editingEntry.category}
                         onChange={(e) => {
                           const newCat = e.target.value;
+                          if (newCat === "Custom") {
+                            setEditingEntry({ ...editingEntry, category: "Custom" });
+                            return;
+                          }
                           const match = tariffs.find((p) => p.category === newCat);
                           setEditingEntry({
                             ...editingEntry,
@@ -859,15 +863,12 @@ export default function AllEntriesPage() {
                         }}
                         className="w-full bg-black border border-neutral-800 px-2.5 py-2 text-white font-mono focus:outline-none focus:border-white rounded"
                       >
-                        {tariffs.length > 0 ? (
-                          tariffs.map((p) => (
-                            <option key={p.category} value={p.category}>
-                              {p.category} — ₹{p.price}
-                            </option>
-                          ))
-                        ) : (
-                          <option value={editingEntry.category}>{editingEntry.category}</option>
-                        )}
+                        <option value="Custom">Custom</option>
+                        {tariffs.map((p) => (
+                          <option key={p.category} value={p.category}>
+                            {p.category} {p.price && p.price > 0 ? `— ₹${p.price}` : "— No Amount"}
+                          </option>
+                        ))}
                       </select>
                     </div>
 
@@ -877,7 +878,12 @@ export default function AllEntriesPage() {
                         type="number"
                         required
                         value={editingEntry.amount}
-                        onChange={(e) => setEditingEntry({ ...editingEntry, amount: Number(e.target.value) })}
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          const match = tariffs.find((p) => p.category === editingEntry.category);
+                          const nextCat = match && match.price !== val ? "Custom" : editingEntry.category;
+                          setEditingEntry({ ...editingEntry, amount: val, category: nextCat });
+                        }}
                         className="w-full bg-black border border-neutral-800 px-3 py-2 text-white font-mono font-bold focus:outline-none focus:border-white rounded"
                       />
                     </div>
