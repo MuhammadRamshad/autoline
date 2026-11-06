@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import ThemeToggle from "@/components/ThemeToggle";
 import { 
   ArrowLeft, 
   Search, 
@@ -385,6 +386,7 @@ export default function AllEntriesPage() {
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
               <span className="hidden sm:inline">Refresh</span>
             </button>
+            <ThemeToggle />
           </div>
         </div>
       </header>
