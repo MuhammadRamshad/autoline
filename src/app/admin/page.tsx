@@ -344,19 +344,19 @@ export default function AdminDashboardPage() {
     <div className="min-h-screen bg-black text-white flex flex-col selection:bg-white selection:text-black">
       <Navbar />
 
-      <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-10 space-y-10">
+      <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-10 space-y-6 sm:space-y-10">
         
         {/* Title Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-neutral-900 pb-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 border-b border-neutral-900 pb-4 sm:pb-5">
           <div>
-            <h1 className="text-xl font-bold uppercase tracking-tight">Admin</h1>
+            <h1 className="text-lg sm:text-xl font-bold uppercase tracking-tight">Admin</h1>
             <p className="text-xs font-mono text-neutral-500 uppercase mt-0.5">Autoline</p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Link
               href="/admin/pricing"
-              className="px-3.5 py-2 bg-neutral-900 hover:bg-neutral-800 text-xs font-mono text-neutral-200 border border-neutral-800 cursor-pointer flex items-center gap-1.5 transition"
+              className="px-3 py-2 bg-neutral-900 hover:bg-neutral-800 text-xs font-mono text-neutral-200 border border-neutral-800 cursor-pointer flex items-center gap-1.5 transition rounded"
               title="Manage Vehicle Categories & Wash Pricing Rates"
             >
               <Tag className="h-3.5 w-3.5 text-neutral-400" />
@@ -367,7 +367,7 @@ export default function AdminDashboardPage() {
             <button
               onClick={() => fetchData()}
               disabled={refreshing}
-              className="px-3 py-2 bg-neutral-900 hover:bg-neutral-800 text-xs font-mono text-neutral-300 border border-neutral-800 cursor-pointer flex items-center gap-1.5"
+              className="px-3 py-2 bg-neutral-900 hover:bg-neutral-800 text-xs font-mono text-neutral-300 border border-neutral-800 cursor-pointer flex items-center gap-1.5 rounded"
               title="Refresh Data"
             >
               <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
@@ -378,11 +378,11 @@ export default function AdminDashboardPage() {
             <button
               onClick={handleGenerateTodayReport}
               disabled={generatingTodayReport}
-              className="px-4 py-2 bg-white text-black text-xs font-mono uppercase tracking-wider font-semibold hover:bg-neutral-200 disabled:opacity-40 cursor-pointer flex items-center gap-1.5 shadow-sm"
+              className="px-3.5 py-2 bg-white text-black text-xs font-mono uppercase tracking-wider font-semibold hover:bg-neutral-200 disabled:opacity-40 cursor-pointer flex items-center gap-1.5 shadow-sm rounded"
               title="Click to generate today's wash report (PDF)"
             >
               <FileText className={`h-3.5 w-3.5 ${generatingTodayReport ? "animate-pulse" : ""}`} />
-              <span>{generatingTodayReport ? "Generating..." : "Today Report"}</span>
+              <span>{generatingTodayReport ? "..." : "Today Report"}</span>
             </button>
           </div>
         </div>

@@ -158,21 +158,21 @@ export default function PricingManagementPage() {
         </div>
       )}
 
-      <main className="flex-1 max-w-6xl mx-auto w-full px-6 py-10 space-y-8">
+      <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-10 space-y-6 sm:space-y-8">
         
         {/* Title Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-neutral-900 pb-5">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 border-b border-neutral-900 pb-4 sm:pb-5">
+          <div className="flex items-center gap-2.5 sm:gap-3">
             <Link
               href="/admin"
-              className="p-2 border border-neutral-800 rounded bg-neutral-900 text-neutral-400 hover:text-white hover:border-neutral-700 transition"
+              className="p-1.5 sm:p-2 border border-neutral-800 rounded bg-neutral-900 text-neutral-400 hover:text-white hover:border-neutral-700 transition"
               title="Back to Admin Dashboard"
             >
               <ArrowLeft className="w-4 h-4" />
             </Link>
             <div>
-              <h1 className="text-xl font-bold uppercase tracking-tight">Category Rates & Pricing</h1>
-              <p className="text-xs font-mono text-neutral-500 uppercase mt-0.5">
+              <h1 className="text-lg sm:text-xl font-bold uppercase tracking-tight">Category Rates & Pricing</h1>
+              <p className="text-[11px] sm:text-xs font-mono text-neutral-500 uppercase mt-0.5">
                 Manage fixed tariffs and vehicle categories for counter entry
               </p>
             </div>
@@ -182,7 +182,7 @@ export default function PricingManagementPage() {
             <button
               onClick={() => fetchPrices()}
               disabled={refreshing}
-              className="px-3 py-2 bg-neutral-900 hover:bg-neutral-800 text-xs font-mono text-neutral-300 border border-neutral-800 cursor-pointer flex items-center gap-1.5"
+              className="px-3 py-1.5 sm:py-2 bg-neutral-900 hover:bg-neutral-800 text-xs font-mono text-neutral-300 border border-neutral-800 cursor-pointer flex items-center gap-1.5 rounded"
               title="Refresh Rates"
             >
               <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
@@ -191,7 +191,7 @@ export default function PricingManagementPage() {
 
             <button
               onClick={() => setShowAddCategory(!showAddCategory)}
-              className="px-4 py-2 bg-white text-black text-xs font-mono uppercase tracking-wider font-semibold hover:bg-neutral-200 cursor-pointer flex items-center gap-1.5"
+              className="px-3.5 sm:px-4 py-1.5 sm:py-2 bg-white text-black text-xs font-mono uppercase tracking-wider font-semibold hover:bg-neutral-200 cursor-pointer flex items-center gap-1.5 rounded"
             >
               <Plus className="h-3.5 w-3.5" />
               <span>Add Category</span>

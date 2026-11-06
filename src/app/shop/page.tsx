@@ -381,11 +381,11 @@ export default function ShopkeeperCounterPage() {
     <div className="min-h-screen bg-black text-white flex flex-col selection:bg-white selection:text-black">
       <Navbar />
 
-      <main className="flex-1 max-w-5xl mx-auto w-full px-6 py-10">
+      <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 py-6 sm:py-10">
         
         {/* Header */}
-        <div className="flex items-baseline justify-between border-b border-neutral-900 pb-4 mb-8">
-          <h1 className="text-xl font-bold uppercase tracking-tight">Vehicle Entry</h1>
+        <div className="flex items-baseline justify-between border-b border-neutral-900 pb-3 mb-6 sm:mb-8">
+          <h1 className="text-lg sm:text-xl font-bold uppercase tracking-tight">Vehicle Entry</h1>
           <span className="text-xs font-mono text-neutral-500 uppercase">Autoline</span>
         </div>
 
