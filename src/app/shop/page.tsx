@@ -394,6 +394,9 @@ export default function ShopkeeperCounterPage() {
     setIsSubmitting(true);
     try {
       const isPending = paymentMode === "Pending";
+      const typedModel = vehicleSearchText.trim();
+      const finalModel = selectedModel || typedModel;
+
       const res = await fetch("/api/washes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -402,7 +405,7 @@ export default function ShopkeeperCounterPage() {
           customerName: customerName.trim(),
           customerPhone: trimmedPhone,
           make: selectedMake,
-          model: selectedModel,
+          model: finalModel,
           category: selectedCategory,
           serviceType: "Full Wash",
           amount: Number(amount),
@@ -511,7 +514,13 @@ export default function ShopkeeperCounterPage() {
                     placeholder="Search model (e.g. Swift, Innova, Thar, Splendor, Creta)"
                     value={vehicleSearchText}
                     onChange={(e) => {
-                      setVehicleSearchText(e.target.value);
+                      const val = e.target.value;
+                      setVehicleSearchText(val);
+                      // If user edits or manually types, clear previous exact model selection so manual text takes precedence
+                      if (selectedModel && val !== `${selectedMake} ${selectedModel}` && val !== selectedModel) {
+                        setSelectedModel("");
+                        setSelectedMake("");
+                      }
                       setShowDropdown(true);
                     }}
                     onFocus={() => setShowDropdown(true)}
