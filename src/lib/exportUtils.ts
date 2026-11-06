@@ -3,12 +3,6 @@ import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 
 export function exportToExcel(entries: any[], filename = "Autoline_CarWash_Report.xlsx", expenses: any[] = []) {
-  const totalWashAmount = entries.reduce((acc, curr) => acc + (curr.amount || 0), 0);
-  const upiWash = entries.filter(e => e.paymentMode?.includes("UPI")).reduce((acc, curr) => acc + (curr.amount || 0), 0);
-  const cashWash = entries.filter(e => e.paymentMode === "Cash").reduce((acc, curr) => acc + (curr.amount || 0), 0);
-  const pendingWash = entries.filter(e => e.paymentMode === "Pending" || e.paymentStatus === "Pending").reduce((acc, curr) => acc + (curr.amount || 0), 0);
-  const totalExpenseAmount = expenses.reduce((acc, curr) => acc + (curr.amount || 0), 0);
-
   const washRows: any[] = entries.map((e, idx) => ({
     "S.No": idx + 1,
     "Date & Time": new Date(e.createdAt).toLocaleString("en-IN"),
@@ -25,23 +19,6 @@ export function exportToExcel(entries: any[], filename = "Autoline_CarWash_Repor
     "Notes": e.notes || "-",
   }));
 
-  // Append Grand Total Row at bottom of Washes
-  washRows.push({
-    "S.No": "TOTAL",
-    "Date & Time": `Total Vehicles: ${entries.length}`,
-    "Vehicle No": "",
-    "Customer Phone": "",
-    "Customer Name": "",
-    "Make": "",
-    "Model": "",
-    "Category": "",
-    "Service": "GROSS INFLOW",
-    "Amount (INR)": totalWashAmount,
-    "Payment Mode": `Cash: ${cashWash} | UPI: ${upiWash}`,
-    "Payment Status": `Pending: ${pendingWash}`,
-    "Notes": `Expenses: ${totalExpenseAmount} | Net: ${totalWashAmount - totalExpenseAmount}`,
-  });
-
   const workbook = XLSX.utils.book_new();
   const washSheet = XLSX.utils.json_to_sheet(washRows);
   XLSX.utils.book_append_sheet(workbook, washSheet, "Vehicle Washes");
@@ -57,17 +34,6 @@ export function exportToExcel(entries: any[], filename = "Autoline_CarWash_Repor
       "Paid By": exp.paidBy || "-",
       "Notes": exp.notes || "-",
     }));
-
-    expenseRows.push({
-      "S.No": "TOTAL",
-      "Date & Time": `Total Expenses: ${expenses.length}`,
-      "Expense Title": "TOTAL OUTFLOW",
-      "Category": "",
-      "Amount (INR)": totalExpenseAmount,
-      "Payment Mode": "",
-      "Paid By": "",
-      "Notes": "",
-    });
 
     const expenseSheet = XLSX.utils.json_to_sheet(expenseRows);
     XLSX.utils.book_append_sheet(workbook, expenseSheet, "Shop Expenses");
@@ -228,26 +194,10 @@ export function exportToPDF(
     ];
   });
 
-  const tableFoot = [
-    [
-      "",
-      `Total: ${entries.length}`,
-      "",
-      "",
-      "",
-      "VEHICLES TOTAL",
-      `Due: Rs. ${pendingWash.toLocaleString("en-IN")}`,
-      `Rs. ${totalWashAmount.toLocaleString("en-IN")}`,
-      `Cash: ${cashWash} | UPI: ${upiWash}`,
-      pendingWash > 0 ? "HAS DUES" : "CLEARED"
-    ]
-  ];
-
   autoTable(doc, {
     startY: cardY + cardHeight + 4.5,
     head: [["#", "DATE & TIME", "VEHICLE NO", "MODEL", "CATEGORY", "CUSTOMER", "PHONE", "AMOUNT", "MODE", "STATUS"]],
     body: tableBody,
-    foot: tableFoot,
     theme: "plain",
     tableWidth: availableWidth,
     margin: { left: 14, right: 14 },
@@ -355,23 +305,10 @@ export function exportToPDF(
       ];
     });
 
-    const expenseTableFoot = [
-      [
-        "",
-        `Total: ${expenses.length} expenses`,
-        "EXPENSES TOTAL",
-        "",
-        "",
-        "TOTAL OUTFLOW",
-        `Rs. ${totalExpenseAmount.toLocaleString("en-IN")}`
-      ]
-    ];
-
     autoTable(doc, {
       startY: expStart,
       head: [["#", "DATE & TIME", "EXPENSE TITLE", "CATEGORY", "PAID BY", "MODE", "AMOUNT"]],
       body: expenseTableBody,
-      foot: expenseTableFoot,
       theme: "plain",
       tableWidth: availableWidth,
       margin: { left: 14, right: 14 },
