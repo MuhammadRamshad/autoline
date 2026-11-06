@@ -792,109 +792,16 @@ export default function ShopkeeperCounterPage() {
               </div>
             )}
 
-            {/* List */}
-            <div>
-              <div className="text-xs font-mono uppercase tracking-wider text-neutral-500 mb-3 flex items-center justify-between">
-                <span>Recent Wash Entries</span>
-                <div className="flex items-center gap-3">
-                  <Link
-                    href="/entries"
-                    className="text-white hover:underline text-[11px] font-bold flex items-center gap-1"
-                  >
-                    <span>View All</span>
-                    <ArrowUpRight className="w-3 h-3" />
-                  </Link>
-                  <button onClick={fetchRecentEntries} className="hover:text-white cursor-pointer">
-                    Refresh
-                  </button>
-                </div>
-              </div>
-              <div className="divide-y divide-neutral-900 border border-neutral-900">
-                {recentEntries.length === 0 ? (
-                  <div className="p-4 text-xs font-mono text-neutral-600 text-center">No entries recorded yet</div>
-                ) : (
-                  recentEntries.map((e) => {
-                    const isPending = e.paymentMode === "Pending" || e.paymentStatus === "Pending";
-                    const vehicleDisplayName = [e.make, e.model].filter(Boolean).join(" ");
-                    return (
-                      <div
-                        key={e._id}
-                        className={`p-3 transition-colors ${
-                          isPending ? "bg-amber-950/20 border-l-2 border-l-amber-500" : ""
-                        }`}
-                      >
-                        <div className="flex items-center justify-between text-xs">
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-mono font-bold text-white tracking-wide">{e.vehicleNumber}</span>
-                              {vehicleDisplayName && (
-                                <span className="text-[11px] font-mono text-neutral-300 font-medium">
-                                  ({vehicleDisplayName})
-                                </span>
-                              )}
-                              {isPending ? (
-                                <span className="text-[9px] font-mono uppercase bg-amber-500/20 text-amber-300 border border-amber-500/50 px-1.5 py-0.5 rounded font-bold flex items-center gap-1">
-                                  <Clock className="h-2.5 w-2.5" />
-                                  <span>PENDING</span>
-                                </span>
-                              ) : (
-                                <span className="text-[9px] font-mono uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 px-1.5 py-0.5 rounded flex items-center gap-0.5">
-                                  <Check className="h-2.5 w-2.5" />
-                                  <span>PAID</span>
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-[10px] text-neutral-500 mt-0.5">
-                              {e.category} {e.customerPhone ? `• ${e.customerPhone}` : ""}
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className={`font-mono font-semibold ${isPending ? "text-amber-400 font-bold" : "text-white"}`}>
-                              ₹{e.amount}
-                            </div>
-                            <div className={`text-[10px] font-mono ${isPending ? "text-amber-400/80 font-bold" : "text-neutral-400"}`}>
-                              {e.paymentMode}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Actions directly inside recent entries */}
-                        <div className="mt-2 pt-2 border-t border-neutral-900/60 flex items-center justify-between gap-2">
-                          <button
-                            type="button"
-                            onClick={() => openEditModal(e)}
-                            className="text-[10px] font-mono text-neutral-400 hover:text-white cursor-pointer flex items-center gap-1"
-                          >
-                            <Edit3 className="h-3 w-3" />
-                            <span>Edit Entry</span>
-                          </button>
-
-                          {isPending && (
-                            <div className="flex gap-1.5">
-                              <button
-                                type="button"
-                                disabled={updatingId === e._id}
-                                onClick={() => markAsSettled(e._id, "Cash")}
-                                className="px-2 py-1 bg-amber-500 hover:bg-amber-400 text-black text-[10px] font-mono uppercase font-bold cursor-pointer"
-                              >
-                                {updatingId === e._id ? "..." : "Cash"}
-                              </button>
-                              <button
-                                type="button"
-                                disabled={updatingId === e._id}
-                                onClick={() => markAsSettled(e._id, "UPI / QR")}
-                                className="px-2 py-1 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 border border-neutral-700 text-[10px] font-mono uppercase cursor-pointer"
-                              >
-                                UPI
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
+            {/* Quick Link to All Entries */}
+            <div className="p-3 bg-neutral-950 border border-neutral-900 rounded flex items-center justify-between">
+              <span className="text-xs font-mono text-neutral-400">Looking for all records?</span>
+              <Link
+                href="/entries"
+                className="text-xs font-mono font-bold text-white hover:underline flex items-center gap-1.5"
+              >
+                <span>View All Entries</span>
+                <ArrowUpRight className="h-3.5 w-3.5" />
+              </Link>
             </div>
 
           </div>

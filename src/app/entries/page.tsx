@@ -17,7 +17,11 @@ import {
   ArrowDownRight,
   TrendingDown,
   TrendingUp,
-  Tag
+  Tag,
+  Edit3,
+  X,
+  Save,
+  Trash2
 } from "lucide-react";
 
 type EntryType = "wash" | "expense";
@@ -55,6 +59,33 @@ export default function AllEntriesPage() {
   const [statusFilter, setStatusFilter] = useState("All");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+
+  // Tariffs list for category change in edit modal
+  const [tariffs, setTariffs] = useState<any[]>([]);
+
+  // Edit states
+  const [editingEntry, setEditingEntry] = useState<any | null>(null);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  // Toast
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const showToast = (message: string, type: "success" | "error" = "success") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3500);
+  };
+
+  const fetchTariffs = async () => {
+    try {
+      const res = await fetch(`/api/prices?_t=${Date.now()}`);
+      const data = await res.json();
+      if (data.success && data.prices) {
+        setTariffs(data.prices);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const fetchEntries = async () => {
     try {
@@ -112,6 +143,7 @@ export default function AllEntriesPage() {
   };
 
   useEffect(() => {
+    fetchTariffs();
     fetchEntries();
 
     const interval = setInterval(() => {
@@ -126,6 +158,141 @@ export default function AllEntriesPage() {
       window.removeEventListener("focus", handleFocus);
     };
   }, [categoryFilter, statusFilter, fromDate, toDate, search]);
+
+  // Quick Settle for Pending Washes
+  const handleSettle = async (id: string, mode: string = "Cash") => {
+    try {
+      setUpdatingId(id);
+      const res = await fetch("/api/washes", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id,
+          paymentStatus: "Paid",
+          paymentMode: mode,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast(`Settled as ${mode}`, "success");
+        fetchEntries();
+      } else {
+        showToast(data.error || "Failed to settle", "error");
+      }
+    } catch (err: any) {
+      showToast(err.message || "Error settling dues", "error");
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  // Open Edit Modal (supports both Wash and Expense)
+  const openEditModal = (entry: CombinedEntryItem) => {
+    if (entry.type === "wash") {
+      setEditingEntry({
+        ...entry,
+        vehicleNumber: entry.vehicleNumber || entry.registrationNumber || "",
+        customerPhone: entry.customerPhone || "",
+        customerName: entry.customerName || "",
+        category: entry.category || "Hatchback (5 Seater)",
+        amount: entry.amount || 0,
+        paymentMode: entry.paymentMode || "UPI / QR",
+        paymentStatus: entry.paymentStatus || (entry.paymentMode === "Pending" ? "Pending" : "Paid"),
+        notes: entry.notes || "",
+      });
+    } else {
+      setEditingEntry({
+        ...entry,
+        title: entry.title || "",
+        category: entry.category || "Miscellaneous",
+        amount: entry.amount || 0,
+        paymentMode: entry.paymentMode || "Cash",
+        paidBy: entry.paidBy || "",
+        notes: entry.notes || "",
+      });
+    }
+  };
+
+  // Save Edit Handler
+  const handleSaveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingEntry) return;
+
+    setIsSavingEdit(true);
+    try {
+      if (editingEntry.type === "wash") {
+        if (!editingEntry.vehicleNumber?.trim()) {
+          showToast("Vehicle number is required", "error");
+          setIsSavingEdit(false);
+          return;
+        }
+        if (!editingEntry.customerPhone?.trim()) {
+          showToast("Phone number is required", "error");
+          setIsSavingEdit(false);
+          return;
+        }
+
+        const res = await fetch("/api/washes", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: editingEntry._id,
+            vehicleNumber: editingEntry.vehicleNumber.toUpperCase().trim(),
+            customerName: editingEntry.customerName || "",
+            customerPhone: editingEntry.customerPhone.trim(),
+            category: editingEntry.category,
+            amount: Number(editingEntry.amount),
+            paymentMode: editingEntry.paymentMode,
+            paymentStatus: editingEntry.paymentMode === "Pending" ? "Pending" : editingEntry.paymentStatus,
+            notes: editingEntry.notes || "",
+          }),
+        });
+
+        const data = await res.json();
+        if (res.ok && data.success) {
+          showToast(`Updated ${data.entry.vehicleNumber}`, "success");
+          setEditingEntry(null);
+          fetchEntries();
+        } else {
+          showToast(data.error || "Failed to save changes", "error");
+        }
+      } else {
+        // Edit Expense
+        if (!editingEntry.title?.trim()) {
+          showToast("Expense title is required", "error");
+          setIsSavingEdit(false);
+          return;
+        }
+
+        const res = await fetch("/api/expenses", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: editingEntry._id,
+            title: editingEntry.title.trim(),
+            category: editingEntry.category,
+            amount: Number(editingEntry.amount),
+            paymentMode: editingEntry.paymentMode,
+            paidBy: editingEntry.paidBy || "",
+            notes: editingEntry.notes || "",
+          }),
+        });
+
+        const data = await res.json();
+        if (res.ok && data.success) {
+          showToast(`Expense updated`, "success");
+          setEditingEntry(null);
+          fetchEntries();
+        } else {
+          showToast(data.error || "Failed to update expense", "error");
+        }
+      }
+    } catch (err: any) {
+      showToast(err.message || "Network error", "error");
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
 
   // Apply in-memory type filter ("All" | "wash" | "expense")
   const filteredEntries = entries.filter((item) => {
@@ -162,6 +329,27 @@ export default function AllEntriesPage() {
 
   return (
     <div className="min-h-screen bg-black text-neutral-100 flex flex-col font-sans">
+      
+      {/* Toast Notification */}
+      {toast && (
+        <div className="fixed top-5 right-5 z-50 animate-in fade-in slide-in-from-top-4 duration-200">
+          <div
+            className={`flex items-center gap-2 px-4 py-2.5 rounded shadow-xl border text-xs font-mono font-medium ${
+              toast.type === "success"
+                ? "bg-neutral-900 border-emerald-500/60 text-emerald-300"
+                : "bg-neutral-900 border-rose-500/60 text-rose-300"
+            }`}
+          >
+            {toast.type === "success" ? (
+              <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+            ) : (
+              <X className="h-4 w-4 text-rose-400 shrink-0" />
+            )}
+            <span>{toast.message}</span>
+          </div>
+        </div>
+      )}
+
       {/* Top Header */}
       <header className="border-b border-neutral-800 bg-neutral-950/90 backdrop-blur sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-3">
@@ -401,6 +589,7 @@ export default function AllEntriesPage() {
                             <th className="px-4 py-3">Customer / Paid By</th>
                             <th className="px-4 py-3 text-right">Amount</th>
                             <th className="px-4 py-3 text-center">Status / Mode</th>
+                            <th className="px-4 py-3 text-right">Actions</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-neutral-900 text-neutral-300">
@@ -465,12 +654,24 @@ export default function AllEntriesPage() {
                                       {entry.paymentMode}
                                     </span>
                                   </td>
+                                  <td className="px-4 py-3 text-right whitespace-nowrap">
+                                    <button
+                                      type="button"
+                                      onClick={() => openEditModal(entry)}
+                                      className="inline-flex items-center gap-1 px-2 py-1 bg-neutral-900 hover:bg-neutral-800 text-amber-300 border border-amber-900/60 rounded text-[11px] font-mono cursor-pointer transition"
+                                      title="Edit expense"
+                                    >
+                                      <Edit3 className="w-3 h-3" />
+                                      <span>Edit</span>
+                                    </button>
+                                  </td>
                                 </tr>
                               );
                             }
 
                             // Standard Wash Row
-                            const isPaid = entry.paymentStatus === "Paid";
+                            const isPending = entry.paymentStatus === "Pending" || entry.paymentMode === "Pending";
+                            const isPaid = !isPending;
                             const regNum = entry.vehicleNumber || entry.registrationNumber || "-";
                             const modelDisplay = [entry.make, entry.model].filter(Boolean).join(" ") || entry.vehicleModel;
 
@@ -478,7 +679,7 @@ export default function AllEntriesPage() {
                               <tr
                                 key={`wash-${entry._id}`}
                                 className={`transition ${
-                                  !isPaid ? "bg-amber-950/15 border-l-4 border-l-amber-600/70" : "hover:bg-neutral-900/50"
+                                  isPending ? "bg-amber-950/15 border-l-4 border-l-amber-600/70" : "hover:bg-neutral-900/50"
                                 }`}
                               >
                                 <td className="px-4 py-3 whitespace-nowrap">
@@ -539,6 +740,30 @@ export default function AllEntriesPage() {
                                     )}
                                   </div>
                                 </td>
+                                <td className="px-4 py-3 text-right whitespace-nowrap">
+                                  <div className="flex items-center justify-end gap-1.5">
+                                    {isPending && (
+                                      <button
+                                        type="button"
+                                        disabled={updatingId === entry._id}
+                                        onClick={() => handleSettle(entry._id, "Cash")}
+                                        className="px-2 py-1 bg-amber-500 hover:bg-amber-400 text-black text-[10px] font-mono uppercase font-bold cursor-pointer rounded"
+                                        title="Quick Settle with Cash"
+                                      >
+                                        {updatingId === entry._id ? "..." : "Settle"}
+                                      </button>
+                                    )}
+                                    <button
+                                      type="button"
+                                      onClick={() => openEditModal(entry)}
+                                      className="inline-flex items-center gap-1 px-2 py-1 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 hover:text-white border border-neutral-800 rounded text-[11px] font-mono cursor-pointer transition"
+                                      title="Edit entry details"
+                                    >
+                                      <Edit3 className="w-3 h-3 text-neutral-400" />
+                                      <span>Edit</span>
+                                    </button>
+                                  </div>
+                                </td>
                               </tr>
                             );
                           })}
@@ -552,6 +777,239 @@ export default function AllEntriesPage() {
           </div>
         )}
       </main>
+
+      {/* Small Edit Setup Modal (Washes & Expenses) */}
+      {editingEntry && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-neutral-950 border border-neutral-800 w-full max-w-lg p-5 sm:p-6 space-y-4 rounded-lg shadow-2xl">
+            <div className="flex items-center justify-between border-b border-neutral-900 pb-3">
+              <div className="flex items-center gap-2">
+                <Edit3 className="h-4 w-4 text-sky-400" />
+                <h3 className="font-mono text-sm uppercase font-bold text-white">
+                  {editingEntry.type === "wash" ? "Edit Wash Entry" : "Edit Expense"}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingEntry(null)}
+                className="text-neutral-500 hover:text-white cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEdit} className="space-y-3.5 text-xs font-mono">
+              {editingEntry.type === "wash" ? (
+                <>
+                  <div>
+                    <label className="block uppercase text-neutral-400 mb-1">Vehicle Number *</label>
+                    <input
+                      type="text"
+                      required
+                      value={editingEntry.vehicleNumber || ""}
+                      onChange={(e) => setEditingEntry({ ...editingEntry, vehicleNumber: e.target.value.toUpperCase() })}
+                      className="w-full bg-black border border-neutral-800 px-3 py-2 text-white font-mono uppercase text-sm focus:outline-none focus:border-white rounded"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block uppercase text-neutral-400 mb-1">Customer Phone *</label>
+                      <input
+                        type="tel"
+                        required
+                        value={editingEntry.customerPhone || ""}
+                        onChange={(e) => setEditingEntry({ ...editingEntry, customerPhone: e.target.value })}
+                        className="w-full bg-black border border-neutral-800 px-3 py-2 text-white font-mono focus:outline-none focus:border-white rounded"
+                      />
+                    </div>
+                    <div>
+                      <label className="block uppercase text-neutral-400 mb-1">Customer Name</label>
+                      <input
+                        type="text"
+                        value={editingEntry.customerName || ""}
+                        onChange={(e) => setEditingEntry({ ...editingEntry, customerName: e.target.value })}
+                        className="w-full bg-black border border-neutral-800 px-3 py-2 text-white font-mono focus:outline-none focus:border-white rounded"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block uppercase text-neutral-400 mb-1">Category</label>
+                      <select
+                        value={editingEntry.category}
+                        onChange={(e) => {
+                          const newCat = e.target.value;
+                          const match = tariffs.find((p) => p.category === newCat);
+                          setEditingEntry({
+                            ...editingEntry,
+                            category: newCat,
+                            amount: match?.price !== undefined ? match.price : editingEntry.amount,
+                          });
+                        }}
+                        className="w-full bg-black border border-neutral-800 px-2.5 py-2 text-white font-mono focus:outline-none focus:border-white rounded"
+                      >
+                        {tariffs.length > 0 ? (
+                          tariffs.map((p) => (
+                            <option key={p.category} value={p.category}>
+                              {p.category} — ₹{p.price}
+                            </option>
+                          ))
+                        ) : (
+                          <option value={editingEntry.category}>{editingEntry.category}</option>
+                        )}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block uppercase text-neutral-400 mb-1">Amount (₹)</label>
+                      <input
+                        type="number"
+                        required
+                        value={editingEntry.amount}
+                        onChange={(e) => setEditingEntry({ ...editingEntry, amount: Number(e.target.value) })}
+                        className="w-full bg-black border border-neutral-800 px-3 py-2 text-white font-mono font-bold focus:outline-none focus:border-white rounded"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block uppercase text-neutral-400 mb-1">Payment Mode</label>
+                      <select
+                        value={editingEntry.paymentMode}
+                        onChange={(e) => {
+                          const mode = e.target.value;
+                          setEditingEntry({
+                            ...editingEntry,
+                            paymentMode: mode,
+                            paymentStatus: mode === "Pending" ? "Pending" : "Paid",
+                          });
+                        }}
+                        className="w-full bg-black border border-neutral-800 px-2.5 py-2 text-white font-mono focus:outline-none focus:border-white rounded"
+                      >
+                        <option value="UPI / QR">UPI / QR</option>
+                        <option value="Cash">Cash</option>
+                        <option value="Pending">Pending</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block uppercase text-neutral-400 mb-1">Payment Status</label>
+                      <select
+                        value={editingEntry.paymentStatus}
+                        onChange={(e) => setEditingEntry({ ...editingEntry, paymentStatus: e.target.value })}
+                        className="w-full bg-black border border-neutral-800 px-2.5 py-2 text-white font-mono focus:outline-none focus:border-white rounded"
+                      >
+                        <option value="Paid">Paid</option>
+                        <option value="Pending">Pending</option>
+                      </select>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                /* Expense Edit Fields */
+                <>
+                  <div>
+                    <label className="block uppercase text-neutral-400 mb-1">Expense Title *</label>
+                    <input
+                      type="text"
+                      required
+                      value={editingEntry.title || ""}
+                      onChange={(e) => setEditingEntry({ ...editingEntry, title: e.target.value })}
+                      className="w-full bg-black border border-neutral-800 px-3 py-2 text-white font-mono focus:outline-none focus:border-white rounded"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block uppercase text-neutral-400 mb-1">Amount (₹) *</label>
+                      <input
+                        type="number"
+                        required
+                        value={editingEntry.amount}
+                        onChange={(e) => setEditingEntry({ ...editingEntry, amount: Number(e.target.value) })}
+                        className="w-full bg-black border border-neutral-800 px-3 py-2 text-white font-mono font-bold focus:outline-none focus:border-white rounded"
+                      />
+                    </div>
+                    <div>
+                      <label className="block uppercase text-neutral-400 mb-1">Category</label>
+                      <select
+                        value={editingEntry.category}
+                        onChange={(e) => setEditingEntry({ ...editingEntry, category: e.target.value })}
+                        className="w-full bg-black border border-neutral-800 px-2.5 py-2 text-white font-mono focus:outline-none focus:border-white rounded"
+                      >
+                        <option value="Miscellaneous">Miscellaneous</option>
+                        <option value="Chemicals & Soap">Chemicals & Soap</option>
+                        <option value="Electricity & Water">Electricity & Water</option>
+                        <option value="Staff & Daily Wages">Staff & Daily Wages</option>
+                        <option value="Maintenance & Tools">Maintenance & Tools</option>
+                        <option value="Refreshments / Tea">Refreshments / Tea</option>
+                        <option value="Rent">Rent</option>
+                        <option value="Fuel / Diesel">Fuel / Diesel</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block uppercase text-neutral-400 mb-1">Payment Mode</label>
+                      <select
+                        value={editingEntry.paymentMode}
+                        onChange={(e) => setEditingEntry({ ...editingEntry, paymentMode: e.target.value })}
+                        className="w-full bg-black border border-neutral-800 px-2.5 py-2 text-white font-mono focus:outline-none focus:border-white rounded"
+                      >
+                        <option value="Cash">Cash</option>
+                        <option value="UPI / QR">UPI / QR</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block uppercase text-neutral-400 mb-1">Paid By</label>
+                      <input
+                        type="text"
+                        value={editingEntry.paidBy || ""}
+                        onChange={(e) => setEditingEntry({ ...editingEntry, paidBy: e.target.value })}
+                        className="w-full bg-black border border-neutral-800 px-3 py-2 text-white font-mono focus:outline-none focus:border-white rounded"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <div>
+                <label className="block uppercase text-neutral-400 mb-1">Notes</label>
+                <input
+                  type="text"
+                  placeholder="Optional notes"
+                  value={editingEntry.notes || ""}
+                  onChange={(e) => setEditingEntry({ ...editingEntry, notes: e.target.value })}
+                  className="w-full bg-black border border-neutral-800 px-3 py-2 text-white font-mono focus:outline-none focus:border-white rounded"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-neutral-900">
+                <button
+                  type="button"
+                  onClick={() => setEditingEntry(null)}
+                  className="px-4 py-2 bg-neutral-900 hover:bg-neutral-800 text-neutral-300 font-mono text-xs uppercase cursor-pointer rounded"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingEdit}
+                  className="px-5 py-2 bg-white hover:bg-neutral-200 text-black font-mono font-bold text-xs uppercase cursor-pointer flex items-center gap-1.5 rounded"
+                >
+                  <Save className="h-3.5 w-3.5" />
+                  <span>{isSavingEdit ? "Saving..." : "Save Changes"}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
