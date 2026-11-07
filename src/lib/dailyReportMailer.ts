@@ -171,6 +171,7 @@ export function generateEmailHtml(data: DailyReportData): string {
         <td style="padding: 8px 10px; font-size: 12px; color: #a3a3a3;">${idx + 1}</td>
         <td style="padding: 8px 10px; font-size: 12px; color: #d4d4d4; font-family: monospace;">${time}</td>
         <td style="padding: 8px 10px; font-size: 12px; color: #ffffff; font-weight: bold; font-family: monospace;">${w.vehicleNumber || "—"}</td>
+        <td style="padding: 8px 10px; font-size: 12px; color: #e4e4e7;">${w.customerName || "—"}</td>
         <td style="padding: 8px 10px; font-size: 12px; color: #a3a3a3;">${w.category || "—"}</td>
         <td style="padding: 8px 10px; font-size: 12px; color: #a3a3a3; font-family: monospace;">${w.customerPhone || "—"}</td>
         <td style="padding: 8px 10px; font-size: 12px; text-align: center;">
@@ -181,7 +182,7 @@ export function generateEmailHtml(data: DailyReportData): string {
         <td style="padding: 8px 10px; font-size: 12px; color: #ffffff; text-align: right; font-weight: bold; font-family: monospace;">Rs. ${(w.amount || 0).toLocaleString("en-IN")}</td>
       </tr>
     `;
-  }).join("") : `<tr><td colspan="7" style="padding: 16px; text-align: center; color: #737373; font-size: 12px;">No vehicle washes recorded today.</td></tr>`;
+  }).join("") : `<tr><td colspan="8" style="padding: 16px; text-align: center; color: #737373; font-size: 12px;">No vehicle washes recorded today.</td></tr>`;
 
   const expenseRowsHtml = data.expenses.length > 0 ? data.expenses.map((e: any, idx: number) => {
     const time = new Date(e.createdAt).toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit" });
@@ -287,6 +288,7 @@ export function generateEmailHtml(data: DailyReportData): string {
                     <th style="padding: 8px 10px; font-size: 10px; font-family: monospace; color: #a3a3a3; text-transform: uppercase;">#</th>
                     <th style="padding: 8px 10px; font-size: 10px; font-family: monospace; color: #a3a3a3; text-transform: uppercase;">Time</th>
                     <th style="padding: 8px 10px; font-size: 10px; font-family: monospace; color: #a3a3a3; text-transform: uppercase;">Vehicle No</th>
+                    <th style="padding: 8px 10px; font-size: 10px; font-family: monospace; color: #a3a3a3; text-transform: uppercase;">Customer Name</th>
                     <th style="padding: 8px 10px; font-size: 10px; font-family: monospace; color: #a3a3a3; text-transform: uppercase;">Category</th>
                     <th style="padding: 8px 10px; font-size: 10px; font-family: monospace; color: #a3a3a3; text-transform: uppercase;">Phone</th>
                     <th style="padding: 8px 10px; font-size: 10px; font-family: monospace; color: #a3a3a3; text-transform: uppercase; text-align: center;">Mode</th>
@@ -298,7 +300,7 @@ export function generateEmailHtml(data: DailyReportData): string {
                 </tbody>
                 <tfoot>
                   <tr style="background-color: #0c0a09; border-top: 2px solid #44403c;">
-                    <td colspan="6" style="padding: 10px 12px; font-size: 11px; font-weight: bold; font-family: monospace; text-align: right; color: #d4d4d4; text-transform: uppercase;">
+                    <td colspan="7" style="padding: 10px 12px; font-size: 11px; font-weight: bold; font-family: monospace; text-align: right; color: #d4d4d4; text-transform: uppercase;">
                       Total
                     </td>
                     <td style="padding: 10px 12px; font-size: 13px; font-weight: bold; font-family: monospace; text-align: right; color: #ffffff;">

@@ -182,6 +182,7 @@ export function exportToPDF(
       `${dateStr} ${timeStr}`,
       e.vehicleNumber || "-",
       vehicleModel,
+      e.customerName || "-",
       e.category || "-",
       e.customerPhone || "-",
       `Rs. ${(Number(e.amount) || 0).toLocaleString("en-IN")}`,
@@ -192,11 +193,11 @@ export function exportToPDF(
 
   autoTable(doc, {
     startY: boxY + cardHeight + 4,
-    head: [["#", "DATE & TIME", "VEHICLE NO", "MODEL", "CATEGORY", "PHONE", "AMOUNT", "MODE", "STATUS"]],
+    head: [["#", "DATE & TIME", "VEHICLE NO", "MODEL", "CUSTOMER NAME", "CATEGORY", "PHONE", "AMOUNT", "MODE", "STATUS"]],
     body: tableBody,
     foot: [
       [
-        { content: "TOTAL", colSpan: 6, styles: { halign: "right", fontStyle: "bold", fontSize: 8.5 } },
+        { content: "TOTAL", colSpan: 7, styles: { halign: "right", fontStyle: "bold", fontSize: 8.5 } },
         { content: `Rs. ${totalWashAmount.toLocaleString("en-IN")}`, styles: { halign: "right", fontStyle: "bold", fontSize: 8.5 } },
         { content: "", colSpan: 2 }
       ]
@@ -208,14 +209,14 @@ export function exportToPDF(
       fillColor: [240, 240, 240], // Light gray for crisp B&W printing
       textColor: [0, 0, 0],
       fontStyle: "bold",
-      fontSize: 7.5,
-      cellPadding: { top: 2.5, bottom: 2.5, left: 1.5, right: 1.5 },
+      fontSize: 7.2,
+      cellPadding: { top: 2.5, bottom: 2.5, left: 1.2, right: 1.2 },
       lineWidth: 0.3,
       lineColor: [0, 0, 0]
     },
     bodyStyles: {
-      fontSize: 7.5,
-      cellPadding: { top: 2, bottom: 2, left: 1.5, right: 1.5 },
+      fontSize: 7.2,
+      cellPadding: { top: 2, bottom: 2, left: 1.2, right: 1.2 },
       textColor: [0, 0, 0],
       lineColor: [180, 180, 180],
       lineWidth: 0.2
@@ -224,22 +225,23 @@ export function exportToPDF(
       fillColor: [255, 255, 255]
     },
     columnStyles: {
-      0: { cellWidth: 8, halign: "center" },
-      1: { cellWidth: 26 },
-      2: { cellWidth: 27, fontStyle: "bold" },
-      3: { cellWidth: 32 },
-      4: { cellWidth: 32 },
-      5: { cellWidth: 21, halign: "center" },
-      6: { cellWidth: 20, halign: "right", fontStyle: "bold" }, // Amount Column
-      7: { cellWidth: 12, halign: "center" },
-      8: { cellWidth: 12, halign: "center" }
+      0: { cellWidth: 7, halign: "center" },   // #
+      1: { cellWidth: 24 },                   // DATE & TIME
+      2: { cellWidth: 24, fontStyle: "bold" }, // VEHICLE NO
+      3: { cellWidth: 26 },                   // MODEL
+      4: { cellWidth: 24 },                   // CUSTOMER NAME
+      5: { cellWidth: 26 },                   // CATEGORY
+      6: { cellWidth: 19, halign: "center" },  // PHONE
+      7: { cellWidth: 18, halign: "right", fontStyle: "bold" }, // AMOUNT
+      8: { cellWidth: 11, halign: "center" },  // MODE
+      9: { cellWidth: 11, halign: "center" }   // STATUS
     },
     footStyles: {
       fillColor: [240, 240, 240],
       textColor: [0, 0, 0],
       fontStyle: "bold",
       fontSize: 8.5,
-      cellPadding: { top: 2.5, bottom: 2.5, left: 1.5, right: 1.5 },
+      cellPadding: { top: 2.5, bottom: 2.5, left: 1.2, right: 1.2 },
       lineWidth: 0.35,
       lineColor: [0, 0, 0]
     }
