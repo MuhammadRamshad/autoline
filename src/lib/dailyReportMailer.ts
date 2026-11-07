@@ -3,6 +3,7 @@ import * as XLSX from "xlsx";
 import dbConnect from "@/lib/mongodb";
 import WashEntry from "@/models/WashEntry";
 import Expense from "@/models/Expense";
+import { generatePDFBuffer } from "@/lib/exportUtils";
 
 export interface DailyReportData {
   dateStr: string;
@@ -351,7 +352,7 @@ export function generateEmailHtml(data: DailyReportData): string {
           <tr>
             <td style="background-color: #0a0a0a; border-top: 1px solid #262626; padding: 20px 32px; text-align: center;">
               <div style="font-size: 12px; color: #e5e5e5; margin-bottom: 6px;">
-                📎 <strong>Attached:</strong> Complete Excel Spreadsheet (<code>Autoline_Report_${data.dateStr}.xlsx</code>)
+                📎 <strong>Attached:</strong> Today's Official Report PDF (<code>Autoline_Car_Wash_Report_${data.dateStr}.pdf</code>)
               </div>
               <div style="font-size: 11px; color: #737373; font-family: monospace;">
                 Automated daily notification sent from Autoline Car Wash Server to ${data.recipientEmail}.
@@ -389,20 +390,26 @@ export async function sendDailyReportEmail(targetDate?: Date): Promise<{ success
       },
     });
 
-    const excelBuffer = generateExcelBuffer(data);
+    // Generate the exact Today's Report PDF buffer matching the dashboard export
+    const pdfBuffer = generatePDFBuffer(
+      data.washes,
+      "Autoline Car Wash Report",
+      `Daily Statement: ${data.dateStr}`,
+      data.expenses
+    );
     const htmlBody = generateEmailHtml(data);
 
     const info = await transporter.sendMail({
       from: `"Autoline Car Wash" <${user}>`,
       to: recipient,
       subject: `[Daily Report] Autoline Car Wash — ${data.dateStr} (Net: Rs. ${data.netProfit.toLocaleString("en-IN")})`,
-      text: `Autoline Car Wash Daily Report for ${data.dateStr}\n\nRevenue Collected: Rs. ${data.totalWashRevenue}\nExpenses: Rs. ${data.totalExpenses}\nNet Cash Profit: Rs. ${data.netProfit}\nTotal Washes: ${data.totalWashes}\nPending Washes: ${data.pendingWashesCount} (Rs. ${data.pendingWashAmount})\n\nPlease check the attached Excel file for complete records.`,
+      text: `Autoline Car Wash Daily Report for ${data.dateStr}\n\nRevenue Collected: Rs. ${data.totalWashRevenue}\nExpenses: Rs. ${data.totalExpenses}\nNet Cash Profit: Rs. ${data.netProfit}\nTotal Washes: ${data.totalWashes}\nPending Washes: ${data.pendingWashesCount} (Rs. ${data.pendingWashAmount})\n\nPlease check the attached Today Report PDF for complete official records.`,
       html: htmlBody,
       attachments: [
         {
-          filename: `Autoline_Daily_Report_${data.dateStr}.xlsx`,
-          content: excelBuffer,
-          contentType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          filename: `Autoline_Car_Wash_Report_${data.dateStr}.pdf`,
+          content: pdfBuffer,
+          contentType: "application/pdf",
         },
       ],
     });

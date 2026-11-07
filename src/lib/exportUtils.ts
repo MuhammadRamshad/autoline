@@ -47,7 +47,10 @@ export function exportToExcel(entries: any[], filename = "Autoline_CarWash_Repor
  * Total row is placed directly beneath the Amount column.
  * Output filename automatically includes the formatted date.
  */
-export function exportToPDF(
+/**
+ * Generates jsPDF document object configured for A4 Portrait Black & White report
+ */
+export function generatePDFDoc(
   entries: any[], 
   title = "Autoline Car Wash Report", 
   subtitle = "",
@@ -72,7 +75,6 @@ export function exportToPDF(
     month: "short",
     year: "numeric"
   });
-  const fileDateStr = now.toISOString().slice(0, 10); // YYYY-MM-DD
 
   // 1. Clean B&W Header (White background, crisp black lines & text)
   doc.setFont("helvetica", "bold");
@@ -351,8 +353,39 @@ export function exportToPDF(
     doc.text(`Page ${i} of ${totalPages}`, pageWidth - marginX, pageHeight - 4.5, { align: "right" });
   }
 
-  // Save with filename containing the date
+  return doc;
+}
+
+/**
+ * High-contrast, clean Black & White report optimized for physical B&W and laser printing.
+ * Total row is placed directly beneath the Amount column.
+ * Output filename automatically includes the formatted date.
+ */
+export function exportToPDF(
+  entries: any[], 
+  title = "Autoline Car Wash Report", 
+  subtitle = "",
+  expenses: any[] = []
+) {
+  const doc = generatePDFDoc(entries, title, subtitle, expenses);
+
+  const now = new Date();
+  const fileDateStr = now.toISOString().slice(0, 10); // YYYY-MM-DD
   const cleanTitle = title.replace(/[^a-zA-Z0-9]/g, "_");
   const filename = `${cleanTitle}_${fileDateStr}.pdf`;
   doc.save(filename);
+}
+
+/**
+ * Returns the PDF document as a Node.js Buffer (for automated email attachments)
+ */
+export function generatePDFBuffer(
+  entries: any[],
+  title = "Autoline Car Wash Report",
+  subtitle = "",
+  expenses: any[] = []
+): Buffer {
+  const doc = generatePDFDoc(entries, title, subtitle, expenses);
+  const arrayBuffer = doc.output("arraybuffer");
+  return Buffer.from(arrayBuffer);
 }
