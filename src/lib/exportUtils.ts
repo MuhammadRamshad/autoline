@@ -249,16 +249,31 @@ export function generatePDFDoc(
     }
   });
 
-  // 5. If expenses exist, append dedicated Shop Expenses Table in report on the same page directly below washes
+  // 5. If expenses exist, append dedicated Shop Expenses Table in report
   if (expenses && expenses.length > 0) {
     const lastY = (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY : boxY + cardHeight + 20;
 
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(9.5);
-    doc.setTextColor(0, 0, 0);
-    doc.text("SHOP EXPENSES & OUTFLOWS", marginX, lastY + 7);
+    // Estimate height needed for expenses: heading + gap (~10mm) + header (~7mm) + rows (~6mm each) + foot (~7mm)
+    const estimatedExpHeight = 10 + 7 + (expenses.length * 6) + 7;
+    const spaceRemaining = (pageHeight - 12) - lastY; // leave room above page footer
 
-    const expStart = lastY + 10;
+    let expStart: number;
+    if (spaceRemaining < estimatedExpHeight) {
+      // Not enough room on current page without awkward splitting -> move cleanly to next page
+      doc.addPage();
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9.5);
+      doc.setTextColor(0, 0, 0);
+      doc.text("SHOP EXPENSES & OUTFLOWS", marginX, 15);
+      expStart = 18;
+    } else {
+      // Fits comfortably on the same page directly below washes table
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9.5);
+      doc.setTextColor(0, 0, 0);
+      doc.text("SHOP EXPENSES & OUTFLOWS", marginX, lastY + 8);
+      expStart = lastY + 11;
+    }
 
     const expenseTableBody = expenses.map((exp, idx) => {
       const d = new Date(exp.createdAt);
