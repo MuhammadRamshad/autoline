@@ -249,25 +249,16 @@ export function generatePDFDoc(
     }
   });
 
-  // 5. If expenses exist, append dedicated Shop Expenses Table in report
+  // 5. If expenses exist, append dedicated Shop Expenses Table in report on the same page directly below washes
   if (expenses && expenses.length > 0) {
     const lastY = (doc as any).lastAutoTable ? (doc as any).lastAutoTable.finalY : boxY + cardHeight + 20;
 
-    // Check if table needs a page break
-    if (lastY > pageHeight - 50) {
-      doc.addPage();
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(9.5);
-      doc.setTextColor(0, 0, 0);
-      doc.text("SHOP EXPENSES & OUTFLOWS", marginX, 14);
-    } else {
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(9.5);
-      doc.setTextColor(0, 0, 0);
-      doc.text("SHOP EXPENSES & OUTFLOWS", marginX, lastY + 8);
-    }
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9.5);
+    doc.setTextColor(0, 0, 0);
+    doc.text("SHOP EXPENSES & OUTFLOWS", marginX, lastY + 7);
 
-    const expStart = lastY > pageHeight - 50 ? 18 : lastY + 11;
+    const expStart = lastY + 10;
 
     const expenseTableBody = expenses.map((exp, idx) => {
       const d = new Date(exp.createdAt);
